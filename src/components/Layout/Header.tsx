@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Menu, X, Brain, LogOut, Settings, Youtube } from 'lucide-react';
@@ -61,7 +61,7 @@ const Header = () => {
             
             {/* YouTube Channel Link - Bigger and Red */}
             <a
-              href="https://youtube.com/@topthought"
+              href="https://youtube.com/@topthought20"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center w-10 h-10 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"

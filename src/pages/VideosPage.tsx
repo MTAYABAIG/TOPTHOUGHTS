@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import  { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Play, Calendar, User, Eye, Filter } from 'lucide-react';
@@ -265,7 +265,7 @@ const VideosPage = () => {
             Get notified when we publish new videos and join our growing community of learners and thinkers.
           </p>
           <a
-            href="https://youtube.com/@topthought"
+            href="https://youtube.com/@topthought20"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center space-x-2 bg-white text-red-600 px-8 py-4 rounded-lg font-semibold hover:bg-red-50 transition-colors text-lg"

@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Brain, Target, Users, Heart, Award, Globe } from 'lucide-react';
 
@@ -46,7 +45,7 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="">
         {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -54,7 +53,7 @@ const AboutPage = () => {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-6">
+          <div className="w-20 h-20 bg-black rounded-full flex items-center justify-center mx-auto mb-6 ">
             <Brain className="w-10 h-10 text-white" />
           </div>
           <h1 className="text-4xl lg:text-5xl font-bold font-serif text-neutral-900 mb-6">
@@ -71,7 +70,7 @@ const AboutPage = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="mb-16"
+          className="mb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
         >
           <div className="bg-white rounded-2xl p-8 lg:p-12 shadow-sm border border-neutral-200">
             <h2 className="text-3xl font-bold text-neutral-900 mb-6">Our Story</h2>
@@ -101,7 +100,7 @@ const AboutPage = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="mb-16"
+          className="mb-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
         >
           <h2 className="text-3xl font-bold text-neutral-900 text-center mb-12">Our Values</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -130,7 +129,7 @@ const AboutPage = () => {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="mb-16"
         >
-          <div className="bg-black rounded-2xl p-8 lg:p-12 text-white">
+          <div className="bg-black p-8 lg:p-12 text-white">
             <h2 className="text-3xl font-bold text-center mb-12">Our Achievements</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {achievements.map((achievement, index) => (
@@ -139,7 +138,7 @@ const AboutPage = () => {
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.6, delay: 0.1 * index }}
-                  className="text-center"
+                  className="text-center hover:bg-white/10 p-5 cursor-pointer rounded-lg transition-colors"
                 >
                   <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <achievement.icon className="w-8 h-8 text-white" />
