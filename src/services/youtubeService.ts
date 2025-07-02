@@ -10,103 +10,111 @@ interface YouTubeApiResponse {
   }>;
 }
 
+declare namespace google {
+  namespace accounts {
+    namespace oauth2 {
+      interface TokenResponse {
+        access_token: string;
+        expires_in: number;
+        token_type: string;
+        scope: string;
+      }
+
+      interface TokenClientConfig {
+        client_id: string;
+        scope: string;
+        prompt?: string;
+        callback: (tokenResponse: TokenResponse) => void;
+      }
+
+      interface TokenClient {
+        requestAccessToken: (overrideConfig?: { prompt?: string }) => void;
+      }
+
+      function initTokenClient(config: TokenClientConfig): TokenClient;
+    }
+  }
+}
+
 interface VideoUploadData {
   title: string;
   description: string;
   tags: string[];
   categoryId: string;
-  privacyStatus: 'private' | 'public' | 'unlisted';
+  privacyStatus: "private" | "public" | "unlisted";
 }
 
-export const fetchChannelStats = async (): Promise<YouTubeChannelStats | null> => {
-  try {
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-    const channelId = import.meta.env.VITE_YOUTUBE_CHANNEL_ID;
-    
-    if (!apiKey || !channelId) {
-      console.error('YouTube API key or channel ID not configured');
+// ---- CHANNEL STATS ----
+export const fetchChannelStats =
+  async (): Promise<YouTubeChannelStats | null> => {
+    try {
+      const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+      const channelId = import.meta.env.VITE_YOUTUBE_CHANNEL_ID;
+
+      if (!apiKey || !channelId) {
+        console.error("YouTube API key or channel ID not configured");
+        return null;
+      }
+
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`
+      );
+
+      if (!response.ok)
+        throw new Error(`YouTube API error: ${response.status}`);
+
+      const data: YouTubeApiResponse = await response.json();
+      return data.items?.[0]?.statistics || null;
+    } catch (error) {
+      console.error("Error fetching YouTube channel stats:", error);
       return null;
     }
+  };
 
-    const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`
-    );
-
-    if (!response.ok) {
-      throw new Error(`YouTube API error: ${response.status}`);
-    }
-
-    const data: YouTubeApiResponse = await response.json();
-    
-    if (data.items && data.items.length > 0) {
-      return data.items[0].statistics;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('Error fetching YouTube channel stats:', error);
-    return null;
-  }
-};
-
+// ---- NUMBER FORMATTER ----
 export const formatNumber = (num: string): string => {
   const number = parseInt(num);
-  
-  if (number >= 1000000) {
-    return (number / 1000000).toFixed(1) + 'M';
-  } else if (number >= 1000) {
-    return (number / 1000).toFixed(1) + 'K';
-  }
-  
-  return number.toLocaleString();
+  return number >= 1_000_000
+    ? (number / 1_000_000).toFixed(1) + "M"
+    : number >= 1_000
+    ? (number / 1_000).toFixed(1) + "K"
+    : number.toLocaleString();
 };
 
-// YouTube OAuth2 Authentication
-export const initializeGoogleAuth = (): Promise<any> => {
+// ---- NEW GIS TOKEN CLIENT ----
+let accessToken: string | null = null;
+let tokenClient: google.accounts.oauth2.TokenClient | null = null;
+
+export const initializeYouTubeAuth = async (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    if (typeof window.gapi === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://apis.google.com/js/api.js';
-      script.onload = () => {
-        window.gapi.load('auth2', () => {
-          window.gapi.auth2.init({
-            client_id: import.meta.env.VITE_YOUTUBE_CLIENT_ID,
-          }).then(resolve).catch(reject);
-        });
-      };
-      script.onerror = reject;
-      document.head.appendChild(script);
-    } else {
-      resolve(window.gapi.auth2.getAuthInstance());
+    if (!tokenClient) {
+      tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: import.meta.env.VITE_YOUTUBE_CLIENT_ID!,
+        scope: "https://www.googleapis.com/auth/youtube.upload",
+        callback: (tokenResponse) => {
+          accessToken = tokenResponse.access_token;
+          resolve();
+        },
+      });
     }
+
+    tokenClient.requestAccessToken({ prompt: "consent" });
   });
 };
 
-export const signInToYouTube = async (): Promise<any> => {
-  try {
-    const authInstance = await initializeGoogleAuth();
-    const user = await authInstance.signIn({
-      scope: 'https://www.googleapis.com/auth/youtube.upload'
-    });
-    return user;
-  } catch (error) {
-    console.error('YouTube sign-in failed:', error);
-    throw error;
-  }
-};
-
+// ---- VIDEO UPLOAD ----
 export const uploadVideoToYouTube = async (
-  file: File, 
+  file: File,
   videoData: VideoUploadData,
   onProgress?: (progress: number) => void
 ): Promise<string> => {
   try {
-    // Get access token
-    const authInstance = window.gapi.auth2.getAuthInstance();
-    const user = authInstance.currentUser.get();
-    const accessToken = user.getAuthResponse().access_token;
+    if (!accessToken) {
+      await initializeYouTubeAuth();
+    }
 
-    // Create metadata
+    if (!accessToken) throw new Error("Access token not available");
+
     const metadata = {
       snippet: {
         title: videoData.title,
@@ -119,43 +127,42 @@ export const uploadVideoToYouTube = async (
       },
     };
 
-    // Create form data for multipart upload
     const formData = new FormData();
-    formData.append('metadata', JSON.stringify(metadata));
-    formData.append('video', file);
-
-    // Upload video
-    const response = await fetch('https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: formData,
+    const metadataBlob = new Blob([JSON.stringify(metadata)], {
+      type: "application/json",
     });
+    formData.append("metadata", metadataBlob);
+    formData.append("video", file);
 
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`);
-    }
+    const response = await fetch(
+      "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=multipart&part=snippet,status",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: formData,
+      }
+    );
 
+    if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
     const result = await response.json();
     return result.id;
   } catch (error) {
-    console.error('Video upload failed:', error);
+    console.error("Video upload failed:", error);
     throw error;
   }
 };
 
-// Get video categories
-export const getVideoCategories = async (): Promise<Array<{id: string, title: string}>> => {
+// ---- VIDEO CATEGORIES ----
+export const getVideoCategories = async (): Promise<
+  Array<{ id: string; title: string }>
+> => {
   try {
     const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
     const response = await fetch(
       `https://www.googleapis.com/youtube/v3/videoCategories?part=snippet&regionCode=US&key=${apiKey}`
     );
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch categories: ${response.status}`);
-    }
 
     const data = await response.json();
     return data.items.map((item: any) => ({
@@ -163,11 +170,7 @@ export const getVideoCategories = async (): Promise<Array<{id: string, title: st
       title: item.snippet.title,
     }));
   } catch (error) {
-    console.error('Error fetching video categories:', error);
-    return [
-      { id: '22', title: 'People & Blogs' },
-      { id: '27', title: 'Education' },
-      { id: '28', title: 'Science & Technology' },
-    ];
+    console.error("Error fetching video categories:", error);
+    return [];
   }
 };

@@ -6,7 +6,7 @@ import Select from 'react-select';
 import toast from 'react-hot-toast';
 import Button from '../UI/Button';
 import TagInput from '../UI/TagInput';
-import { signInToYouTube, uploadVideoToYouTube, getVideoCategories } from '../../services/youtubeService';
+import { initializeYouTubeAuth, uploadVideoToYouTube, getVideoCategories } from '../../services/youtubeService';
 
 interface VideoUploadForm {
   title: string;
@@ -26,7 +26,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({ onUploadComplete, onClose
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isSignedIn, setIsSignedIn] = useState(false);
-  const [categories, setCategories] = useState<Array<{value: string, label: string}>>([]);
+  const [categories, setCategories] = useState<Array<{ value: string, label: string }>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -60,13 +60,14 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({ onUploadComplete, onClose
 
   const handleSignIn = async () => {
     try {
-      await signInToYouTube();
+      await initializeYouTubeAuth();
       setIsSignedIn(true);
       toast.success('Successfully signed in to YouTube!');
     } catch (error) {
       toast.error('Failed to sign in to YouTube');
     }
   };
+
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -76,7 +77,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({ onUploadComplete, onClose
         toast.error('Please select a video file');
         return;
       }
-      
+
       // Check file size (max 128GB for YouTube, but we'll set a reasonable limit)
       const maxSize = 2 * 1024 * 1024 * 1024; // 2GB
       if (selectedFile.size > maxSize) {
@@ -188,7 +189,7 @@ const VideoUploader: React.FC<VideoUploaderProps> = ({ onUploadComplete, onClose
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              
+
               {file ? (
                 <div className="flex items-center justify-center space-x-3">
                   <CheckCircle className="w-6 h-6 text-green-600" />
