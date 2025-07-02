@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, Eye, Calendar, User } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Calendar, User, Upload, Video } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import Button from '../components/UI/Button';
+import VideoUploader from '../components/YouTube/VideoUploader';
 import { mockPosts } from '../data/mockData';
 
 const AdminDashboard = () => {
   const [posts, setPosts] = useState(mockPosts);
+  const [showVideoUploader, setShowVideoUploader] = useState(false);
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
       setPosts(posts.filter(post => post._id !== id));
       toast.success('Post deleted successfully');
     }
+  };
+
+  const handleVideoUploadComplete = (videoId: string) => {
+    toast.success(`Video uploaded successfully! Video ID: ${videoId}`);
+    setShowVideoUploader(false);
   };
 
   return (
@@ -29,13 +36,23 @@ const AdminDashboard = () => {
         >
           <div>
             <h1 className="text-3xl font-bold text-neutral-900">Admin Dashboard</h1>
-            <p className="text-neutral-600 mt-1">Manage your blog posts</p>
+            <p className="text-neutral-600 mt-1">Manage your blog posts and videos</p>
           </div>
-          <Link to="/admin/create">
-            <Button icon={Plus} size="lg">
-              Create New Post
+          <div className="flex space-x-3">
+            <Button
+              onClick={() => setShowVideoUploader(true)}
+              icon={Video}
+              variant="secondary"
+              size="lg"
+            >
+              Upload Video
             </Button>
-          </Link>
+            <Link to="/admin/create">
+              <Button icon={Plus} size="lg">
+                Create New Post
+              </Button>
+            </Link>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}
@@ -43,7 +60,7 @@ const AdminDashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+          className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8"
         >
           <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
             <div className="flex items-center justify-between">
@@ -65,6 +82,20 @@ const AdminDashboard = () => {
               </div>
               <div className="w-12 h-12 bg-secondary-100 rounded-lg flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-secondary-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Videos</p>
+                <p className="text-2xl font-bold text-neutral-900">
+                  {posts.filter(post => post.youtubeUrl).length}
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                <Video className="w-6 h-6 text-red-600" />
               </div>
             </div>
           </div>
@@ -106,6 +137,9 @@ const AdminDashboard = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
                     Author
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                    Type
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-neutral-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -145,6 +179,18 @@ const AdminDashboard = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-500">
                       {post.author || 'Admin'}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex space-x-1">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          Article
+                        </span>
+                        {post.youtubeUrl && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Video
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
                         <Link
@@ -173,6 +219,16 @@ const AdminDashboard = () => {
             </table>
           </div>
         </motion.div>
+
+        {/* Video Upload Modal */}
+        {showVideoUploader && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <VideoUploader
+              onUploadComplete={handleVideoUploadComplete}
+              onClose={() => setShowVideoUploader(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
