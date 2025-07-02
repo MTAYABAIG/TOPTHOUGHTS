@@ -1,15 +1,17 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Play, Calendar, User, Eye, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { mockPosts } from '../data/mockData';
+import { useYouTubeStats } from '../hooks/useYouTubeStats';
 
 const VideosPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const videosPerPage = 9;
+  const youtubeStats = useYouTubeStats();
 
   // Filter posts that have YouTube videos
   const videoPosts = mockPosts.filter(post => post.youtubeUrl);
@@ -97,7 +99,7 @@ const VideosPage = () => {
           </div>
         </motion.div>
 
-        {/* Video Stats */}
+        {/* Real YouTube Stats */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -106,18 +108,57 @@ const VideosPage = () => {
         >
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
-              <div className="text-3xl font-bold text-neutral-900 mb-1">{videoPosts.length}</div>
-              <div className="text-neutral-600">Total Videos</div>
+              {youtubeStats.loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-neutral-200 rounded mb-2"></div>
+                  <div className="h-4 bg-neutral-200 rounded"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold text-neutral-900 mb-1">
+                    {youtubeStats.videos}
+                  </div>
+                  <div className="text-neutral-600">Total Videos</div>
+                </>
+              )}
             </div>
             <div>
-              <div className="text-3xl font-bold text-neutral-900 mb-1">50K+</div>
-              <div className="text-neutral-600">Total Views</div>
+              {youtubeStats.loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-neutral-200 rounded mb-2"></div>
+                  <div className="h-4 bg-neutral-200 rounded"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold text-neutral-900 mb-1">
+                    {youtubeStats.views}
+                  </div>
+                  <div className="text-neutral-600">Total Views</div>
+                </>
+              )}
             </div>
             <div>
-              <div className="text-3xl font-bold text-neutral-900 mb-1">2.5K</div>
-              <div className="text-neutral-600">Subscribers</div>
+              {youtubeStats.loading ? (
+                <div className="animate-pulse">
+                  <div className="h-8 bg-neutral-200 rounded mb-2"></div>
+                  <div className="h-4 bg-neutral-200 rounded"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="text-3xl font-bold text-neutral-900 mb-1">
+                    {youtubeStats.subscribers}
+                  </div>
+                  <div className="text-neutral-600">Subscribers</div>
+                </>
+              )}
             </div>
           </div>
+          
+          {youtubeStats.error && (
+            <div className="mt-4 text-center">
+              <p className="text-red-600 text-sm">{youtubeStats.error}</p>
+            </div>
+          )}
         </motion.div>
 
         {/* Videos Grid */}
