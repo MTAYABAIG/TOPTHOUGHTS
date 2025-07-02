@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, BookOpen, Bell, Mail, TrendingUp, Users, Video } from 'lucide-react';
+import { ArrowRight, BookOpen, Bell, Mail, TrendingUp, Users, Video, Play } from 'lucide-react';
 import Button from '../components/UI/Button';
 import BlogCard from '../components/Blog/BlogCard';
+import StatsCard from '../components/UI/StatsCard';
 import { mockPosts } from '../data/mockData';
+import { useYouTubeStats } from '../hooks/useYouTubeStats';
 
 const HomePage = () => {
   const featuredPosts = mockPosts.slice(0, 3);
+  const youtubeStats = useYouTubeStats();
 
   return (
     <div className="min-h-screen">
@@ -50,9 +53,9 @@ const HomePage = () => {
                   Explore Articles
                 </Link>
               </Button>
-              <Button variant="outline" size="lg">
-                <Link to="/about">
-                  Learn More
+              <Button variant="outline" size="lg" icon={Play}>
+                <Link to="/videos">
+                  Watch Videos
                 </Link>
               </Button>
             </motion.div>
@@ -86,6 +89,83 @@ const HomePage = () => {
               <BlogCard key={post._id} post={post} />
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* YouTube Channel Stats */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-4">
+              Our YouTube Channel
+            </h2>
+            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
+              Join our growing community on YouTube for video content, tutorials, and in-depth discussions.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+            <StatsCard
+              icon={Users}
+              title="Subscribers"
+              value={youtubeStats.subscribers}
+              description="Growing community of learners"
+              loading={youtubeStats.loading}
+              delay={0.2}
+            />
+
+            <StatsCard
+              icon={Video}
+              title="Videos"
+              value={youtubeStats.videos}
+              description="Educational content and tutorials"
+              loading={youtubeStats.loading}
+              delay={0.3}
+            />
+
+            <StatsCard
+              icon={TrendingUp}
+              title="Total Views"
+              value={youtubeStats.views}
+              description="Minds reached and inspired"
+              loading={youtubeStats.loading}
+              delay={0.4}
+            />
+          </div>
+
+          {youtubeStats.error && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center mb-8"
+            >
+              <p className="text-red-600 bg-red-50 px-4 py-2 rounded-lg inline-block">
+                {youtubeStats.error}
+              </p>
+            </motion.div>
+          )}
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="text-center"
+          >
+            <a
+              href="https://youtube.com/@topthought20"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-2 bg-red-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors text-lg"
+            >
+              <Play className="w-5 h-5" />
+              <span>Subscribe to Our Channel</span>
+            </a>
+          </motion.div>
         </div>
       </section>
 
@@ -137,75 +217,6 @@ const HomePage = () => {
               </p>
             </motion.div>
           </motion.div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl lg:text-4xl font-bold text-neutral-900 mb-4">
-              Our Impact
-            </h2>
-            <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
-              Join thousands of readers who trust Top Thought for quality content and meaningful discussions.
-            </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-center p-8 rounded-2xl bg-neutral-50 hover:shadow-lg transition-shadow"
-            >
-              <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-6">
-                <TrendingUp className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-2">100+</div>
-              <div className="text-neutral-600 text-lg font-medium">Inspiring Articles</div>
-              <p className="text-neutral-500 text-sm mt-2">
-                Carefully crafted content that sparks meaningful conversations
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="text-center p-8 rounded-2xl bg-neutral-50 hover:shadow-lg transition-shadow"
-            >
-              <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-6">
-                <Video className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-2">50+</div>
-              <div className="text-neutral-600 text-lg font-medium">Video Discussions</div>
-              <p className="text-neutral-500 text-sm mt-2">
-                In-depth video content exploring complex topics and ideas
-              </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-              className="text-center p-8 rounded-2xl bg-neutral-50 hover:shadow-lg transition-shadow"
-            >
-              <div className="w-16 h-16 bg-black rounded-full flex items-center justify-center mx-auto mb-6">
-                <Users className="w-8 h-8 text-white" />
-              </div>
-              <div className="text-4xl lg:text-5xl font-bold text-neutral-900 mb-2">10K+</div>
-              <div className="text-neutral-600 text-lg font-medium">Engaged Readers</div>
-              <p className="text-neutral-500 text-sm mt-2">
-                A growing community of thoughtful individuals worldwide
-              </p>
-            </motion.div>
-          </div>
         </div>
       </section>
     </div>
