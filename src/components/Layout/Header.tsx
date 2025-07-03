@@ -1,30 +1,18 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, Brain, LogOut, Settings, Youtube, Upload, MessageCircle, Sparkles } from 'lucide-react';
+import { Menu, X, Brain, LogOut, Settings, Youtube } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useGoogleAuth } from '../../contexts/GoogleAuthContext';
-import GeminiChat from '../AI/GeminiChat';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, logout } = useAuth();
-  const { user: googleUser, isSignedIn: isGoogleSignedIn, signIn: googleSignIn, signOut: googleSignOut } = useGoogleAuth();
 
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      await googleSignIn();
-    } catch (error) {
-      console.error('Google sign in failed:', error);
-    }
   };
 
   const navItems = [
@@ -83,52 +71,13 @@ const Header = () => {
                 <Youtube className="w-6 h-6" />
               </a>
 
-              {/* Google Auth & Features */}
-              {isGoogleSignedIn ? (
-                <div className="flex items-center space-x-4">
-                  {/* AI Chat Button */}
-                  <button
-                    onClick={() => setIsChatOpen(true)}
-                    className="flex items-center space-x-1 text-purple-600 hover:text-purple-700 hover:bg-purple-50 px-3 py-2 rounded-lg transition-all duration-200"
-                    title="Chat with AI"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span className="text-sm font-medium">AI Chat</span>
-                  </button>
-
-                  {/* Upload Video Button */}
-                  <Link
-                    to="/upload-video"
-                    className="flex items-center space-x-1 text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg transition-all duration-200"
-                  >
-                    <Upload className="w-4 h-4" />
-                    <span className="text-sm font-medium">Upload</span>
-                  </Link>
-
-                  {/* User Profile */}
-                  <div className="flex items-center space-x-2">
-                    <img
-                      src={googleUser?.picture}
-                      alt={googleUser?.name}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <button
-                      onClick={googleSignOut}
-                      className="text-sm text-neutral-600 hover:text-red-600 transition-colors"
-                      title="Sign out"
-                    >
-                      <LogOut className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={handleGoogleSignIn}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200"
-                >
-                  Sign in with Google
-                </button>
-              )}
+              {/* Upload Video Link */}
+              <Link
+                to="/upload-video"
+                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-200"
+              >
+                Upload Video
+              </Link>
               
               {/* Admin Auth */}
               {isAuthenticated ? (
@@ -204,57 +153,14 @@ const Header = () => {
                   <span>YouTube Channel</span>
                 </a>
 
-                {/* Google Auth Mobile */}
-                {isGoogleSignedIn ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        setIsChatOpen(true);
-                        setIsMenuOpen(false);
-                      }}
-                      className="flex items-center space-x-2 text-sm font-medium text-purple-600 hover:text-purple-700 transition-colors text-left"
-                    >
-                      <Sparkles className="w-5 h-5" />
-                      <span>AI Chat</span>
-                    </button>
-                    <Link
-                      to="/upload-video"
-                      onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center space-x-2 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
-                    >
-                      <Upload className="w-5 h-5" />
-                      <span>Upload Video</span>
-                    </Link>
-                    <div className="flex items-center space-x-2 py-2">
-                      <img
-                        src={googleUser?.picture}
-                        alt={googleUser?.name}
-                        className="w-6 h-6 rounded-full"
-                      />
-                      <span className="text-sm text-neutral-700">{googleUser?.name}</span>
-                    </div>
-                    <button
-                      onClick={() => {
-                        googleSignOut();
-                        setIsMenuOpen(false);
-                      }}
-                      className="flex items-center space-x-2 text-sm font-medium text-neutral-700 hover:text-red-600 transition-colors text-left"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      <span>Sign Out</span>
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    onClick={() => {
-                      handleGoogleSignIn();
-                      setIsMenuOpen(false);
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-all duration-200 text-center"
-                  >
-                    Sign in with Google
-                  </button>
-                )}
+                {/* Upload Video Link */}
+                <Link
+                  to="/upload-video"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-200 text-center"
+                >
+                  Upload Video
+                </Link>
                 
                 {/* Admin Auth Mobile */}
                 {isAuthenticated ? (
@@ -292,9 +198,6 @@ const Header = () => {
           )}
         </nav>
       </header>
-
-      {/* Gemini Chat Drawer */}
-      <GeminiChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </>
   );
 };

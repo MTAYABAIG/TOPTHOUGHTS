@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { GoogleAuthProvider } from './contexts/GoogleAuthContext';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
+import FloatingGeminiChat from './components/AI/FloatingGeminiChat';
 import HomePage from './pages/HomePage';
 import BlogPage from './pages/BlogPage';
 import BlogPostPage from './pages/BlogPostPage';
@@ -74,6 +75,10 @@ function App() {
               </motion.main>
             </AnimatePresence>
             <Footer />
+            
+            {/* Floating Gemini Chat */}
+            <FloatingGeminiChat />
+            
             <Toaster
               position="top-right"
               toastOptions={{
