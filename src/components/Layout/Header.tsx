@@ -70,14 +70,6 @@ const Header = () => {
               >
                 <Youtube className="w-6 h-6" />
               </a>
-
-              {/* Upload Video Link */}
-              <Link
-                to="/upload-video"
-                className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-200"
-              >
-                Upload Video
-              </Link>
               
               {/* Admin Auth */}
               {isAuthenticated ? (
@@ -152,15 +144,6 @@ const Header = () => {
                   <Youtube className="w-5 h-5" />
                   <span>YouTube Channel</span>
                 </a>
-
-                {/* Upload Video Link */}
-                <Link
-                  to="/upload-video"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-all duration-200 text-center"
-                >
-                  Upload Video
-                </Link>
                 
                 {/* Admin Auth Mobile */}
                 {isAuthenticated ? (

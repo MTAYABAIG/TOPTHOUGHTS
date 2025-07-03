@@ -5,23 +5,16 @@ import { Plus, Edit, Trash2, Eye, Calendar, User, Upload, Video } from 'lucide-r
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import Button from '../components/UI/Button';
-import VideoUploader from '../components/YouTube/VideoUploader';
 import { mockPosts } from '../data/mockData';
 
 const AdminDashboard = () => {
   const [posts, setPosts] = useState(mockPosts);
-  const [showVideoUploader, setShowVideoUploader] = useState(false);
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
       setPosts(posts.filter(post => post._id !== id));
       toast.success('Post deleted successfully');
     }
-  };
-
-  const handleVideoUploadComplete = (videoId: string) => {
-    toast.success(`Video uploaded successfully! Video ID: ${videoId}`);
-    setShowVideoUploader(false);
   };
 
   return (
@@ -39,14 +32,15 @@ const AdminDashboard = () => {
             <p className="text-neutral-600 mt-1">Manage your blog posts and videos</p>
           </div>
           <div className="flex space-x-3">
-            <Button
-              onClick={() => setShowVideoUploader(true)}
-              icon={Video}
-              variant="secondary"
-              size="lg"
-            >
-              Upload Video
-            </Button>
+            <Link to="/upload-video">
+              <Button
+                icon={Video}
+                variant="secondary"
+                size="lg"
+              >
+                Upload Video
+              </Button>
+            </Link>
             <Link to="/admin/create">
               <Button icon={Plus} size="lg">
                 Create New Post
@@ -219,16 +213,6 @@ const AdminDashboard = () => {
             </table>
           </div>
         </motion.div>
-
-        {/* Video Upload Modal */}
-        {showVideoUploader && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <VideoUploader
-              onUploadComplete={handleVideoUploadComplete}
-              onClose={() => setShowVideoUploader(false)}
-            />
-          </div>
-        )}
       </div>
     </div>
   );
