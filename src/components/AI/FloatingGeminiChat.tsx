@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, X, Minimize2, Maximize2, Sparkles, MessageCircle } from 'lucide-react';
+import { Send, Bot, User, X, Minimize2, Maximize2, Sparkles, MessageCircle, AlertCircle } from 'lucide-react';
 import { geminiService, ChatMessage } from '../../services/geminiService';
 import toast from 'react-hot-toast';
 
@@ -17,6 +17,7 @@ const FloatingGeminiChat: React.FC = () => {
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [hasApiKey, setHasApiKey] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -34,8 +35,19 @@ const FloatingGeminiChat: React.FC = () => {
     }
   }, [isOpen, isMinimized]);
 
+  useEffect(() => {
+    // Check if API key is configured
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    setHasApiKey(!!apiKey);
+  }, []);
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
+
+    if (!hasApiKey) {
+      toast.error('Gemini API key not configured');
+      return;
+    }
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -60,8 +72,18 @@ const FloatingGeminiChat: React.FC = () => {
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      toast.error('Failed to get response from AI');
       console.error('Chat error:', error);
+      
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : 'Unknown error occurred'}. Please try again.`,
+        timestamp: new Date(),
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      toast.error('Failed to get response from AI');
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +146,9 @@ const FloatingGeminiChat: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold">Gemini AI</h3>
-                  <p className="text-xs text-white/80">Your AI Assistant</p>
+                  <p className="text-xs text-white/80">
+                    {hasApiKey ? 'Your AI Assistant' : 'API Key Required'}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
@@ -145,6 +169,18 @@ const FloatingGeminiChat: React.FC = () => {
 
             {!isMinimized && (
               <>
+                {/* API Key Warning */}
+                {!hasApiKey && (
+                  <div className="p-3 bg-yellow-50 border-b border-yellow-200">
+                    <div className="flex items-center space-x-2 text-yellow-800">
+                      <AlertCircle className="w-4 h-4" />
+                      <p className="text-xs">
+                        Gemini API key not configured. Please add VITE_GEMINI_API_KEY to your environment.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {messages.map((message) => (
@@ -221,13 +257,13 @@ const FloatingGeminiChat: React.FC = () => {
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
                       onKeyPress={handleKeyPress}
-                      placeholder="Ask me anything..."
+                      placeholder={hasApiKey ? "Ask me anything..." : "API key required"}
                       className="flex-1 px-3 py-2 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all text-sm"
-                      disabled={isLoading}
+                      disabled={isLoading || !hasApiKey}
                     />
                     <button
                       onClick={handleSendMessage}
-                      disabled={!inputMessage.trim() || isLoading}
+                      disabled={!inputMessage.trim() || isLoading || !hasApiKey}
                       className="px-3 py-2 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-lg hover:from-purple-600 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                     >
                       <Send className="w-4 h-4" />
