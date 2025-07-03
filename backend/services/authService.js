@@ -11,7 +11,6 @@ const initializeAdmin = async () => {
         password: hashedPassword,
       });
       await admin.save();
-      console.log('Admin user created: username=admin, password=admin123');
     }
   } catch (error) {
     console.error('Error initializing admin user:', error);
