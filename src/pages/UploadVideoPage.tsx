@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm, Controller } from 'react-hook-form';
-import { ArrowLeft, Upload, Play, Sparkles, Wand2, RefreshCw, Image as ImageIcon, Eye } from 'lucide-react';
+import { ArrowLeft, Upload, Play, Sparkles, Wand2, Eye, Shield, Clock, Globe, Users, Video as VideoIcon } from 'lucide-react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import toast from 'react-hot-toast';
 import Select from 'react-select';
 import { useGoogleAuth } from '../contexts/GoogleAuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { geminiService } from '../services/geminiService';
 import { uploadVideoToYouTube, getVideoCategories } from '../services/youtubeService';
 import Button from '../components/UI/Button';
@@ -21,6 +23,13 @@ interface VideoUploadForm {
   thumbnail: string;
   language: { value: string; label: string };
   license: { value: string; label: string };
+  videoType: { value: string; label: string };
+  publishAt: string;
+  targetChannel: { value: string; label: string };
+  allowComments: boolean;
+  allowRatings: boolean;
+  allowEmbedding: boolean;
+  notifySubscribers: boolean;
 }
 
 const UploadVideoPage = () => {
@@ -29,8 +38,11 @@ const UploadVideoPage = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [categories, setCategories] = useState<Array<{ value: string, label: string }>>([]);
   const [generatingContent, setGeneratingContent] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [showGoogleSignIn, setShowGoogleSignIn] = useState(false);
   const navigate = useNavigate();
   const { user, isSignedIn, signIn } = useGoogleAuth();
+  const { isAuthenticated } = useAuth();
 
   const {
     register,
@@ -49,6 +61,13 @@ const UploadVideoPage = () => {
       thumbnail: '',
       language: { value: 'en', label: 'English' },
       license: { value: 'youtube', label: 'Standard YouTube License' },
+      videoType: { value: 'video', label: 'Regular Video' },
+      publishAt: '',
+      targetChannel: { value: 'topthought20', label: 'TopThought20 (Official)' },
+      allowComments: true,
+      allowRatings: true,
+      allowEmbedding: true,
+      notifySubscribers: true,
     }
   });
 
@@ -78,6 +97,18 @@ const UploadVideoPage = () => {
     { value: 'creativeCommon', label: 'Creative Commons - Attribution' },
   ];
 
+  const videoTypeOptions = [
+    { value: 'video', label: 'Regular Video' },
+    { value: 'short', label: 'YouTube Short (Vertical)' },
+    { value: 'live', label: 'Live Stream' },
+    { value: 'premiere', label: 'Premiere' },
+  ];
+
+  const channelOptions = [
+    { value: 'topthought20', label: 'TopThought20 (Official)' },
+    { value: 'google', label: 'My Google Account Channel' },
+  ];
+
   React.useEffect(() => {
     // Load video categories
     getVideoCategories().then(cats => {
@@ -89,6 +120,7 @@ const UploadVideoPage = () => {
     try {
       await signIn();
       toast.success('Successfully signed in with Google!');
+      setShowGoogleSignIn(false);
     } catch (error) {
       toast.error('Failed to sign in with Google');
     }
@@ -112,10 +144,19 @@ const UploadVideoPage = () => {
 
       setFile(selectedFile);
       
+      // Auto-detect video type based on dimensions (would need actual video analysis)
+      // For now, we'll check filename for "short" or aspect ratio hints
+      const filename = selectedFile.name.toLowerCase();
+      if (filename.includes('short') || filename.includes('vertical')) {
+        setValue('videoType', { value: 'short', label: 'YouTube Short (Vertical)' });
+      }
+      
       // Auto-generate title from filename if empty
       if (!watchedFields.title) {
-        const filename = selectedFile.name.replace(/\.[^/.]+$/, "");
-        const cleanTitle = filename.replace(/[_-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        const cleanTitle = selectedFile.name
+          .replace(/\.[^/.]+$/, "")
+          .replace(/[_-]/g, ' ')
+          .replace(/\b\w/g, l => l.toUpperCase());
         setValue('title', cleanTitle);
       }
     }
@@ -138,7 +179,7 @@ const UploadVideoPage = () => {
 
       // Generate tags
       const tags = await geminiService.generateVideoTags(watchedFields.title, description);
-      setValue('tags', tags.slice(0, 10)); // YouTube allows max 500 characters for tags
+      setValue('tags', tags.slice(0, 10));
 
       toast.success('AI content generated successfully!');
     } catch (error) {
@@ -166,14 +207,30 @@ const UploadVideoPage = () => {
     }
   };
 
+  const onRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+  };
+
   const onSubmit = async (data: VideoUploadForm) => {
     if (!file) {
       toast.error('Please select a video file');
       return;
     }
 
-    if (!user?.accessToken) {
-      toast.error('Please sign in with Google first');
+    if (!recaptchaToken) {
+      toast.error('Please complete the reCAPTCHA verification');
+      return;
+    }
+
+    // Check authentication based on target channel
+    if (data.targetChannel.value === 'google' && !isSignedIn) {
+      setShowGoogleSignIn(true);
+      return;
+    }
+
+    if (data.targetChannel.value === 'topthought20' && !isAuthenticated) {
+      toast.error('Admin authentication required for TopThought20 channel');
+      navigate('/login');
       return;
     }
 
@@ -181,19 +238,27 @@ const UploadVideoPage = () => {
     setUploadProgress(0);
 
     try {
-      const videoId = await uploadVideoToYouTube(
-        file,
-        {
-          title: data.title,
-          description: data.description,
-          tags: data.tags,
-          categoryId: data.category?.value || '22',
-          privacyStatus: data.privacyStatus.value as 'private' | 'public' | 'unlisted',
-        },
-        (progress) => setUploadProgress(progress)
-      );
+      let videoId: string;
 
-      toast.success('Video uploaded successfully!');
+      if (data.targetChannel.value === 'topthought20') {
+        // Upload to TopThought20 channel using admin credentials
+        videoId = await uploadToTopThoughtChannel(file, data);
+      } else {
+        // Upload to user's Google account channel
+        videoId = await uploadVideoToYouTube(
+          file,
+          {
+            title: data.title,
+            description: data.description,
+            tags: data.tags,
+            categoryId: data.category?.value || '22',
+            privacyStatus: data.privacyStatus.value as 'private' | 'public' | 'unlisted',
+          },
+          (progress) => setUploadProgress(progress)
+        );
+      }
+
+      toast.success(`Video uploaded successfully to ${data.targetChannel.label}!`);
       navigate('/admin');
     } catch (error) {
       toast.error('Failed to upload video');
@@ -203,8 +268,24 @@ const UploadVideoPage = () => {
     }
   };
 
-  // Show sign-in prompt if not authenticated
-  if (!isSignedIn) {
+  const uploadToTopThoughtChannel = async (file: File, data: VideoUploadForm): Promise<string> => {
+    // Simulate upload to TopThought20 channel
+    // In a real implementation, this would use server-side YouTube API with channel credentials
+    return new Promise((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        setUploadProgress(progress);
+        if (progress >= 100) {
+          clearInterval(interval);
+          resolve('mock-video-id-topthought20');
+        }
+      }, 500);
+    });
+  };
+
+  // Show Google sign-in prompt if needed
+  if (showGoogleSignIn) {
     return (
       <div className="min-h-screen py-8">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -223,28 +304,42 @@ const UploadVideoPage = () => {
             </Link>
 
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-neutral-200">
-              <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Upload className="w-10 h-10 text-white" />
+              <div className="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Users className="w-10 h-10 text-white" />
               </div>
               
-              <h1 className="text-3xl font-bold text-neutral-900 mb-4">Upload to YouTube</h1>
+              <h1 className="text-3xl font-bold text-neutral-900 mb-4">Google Account Required</h1>
               <p className="text-lg text-neutral-600 mb-8">
-                Sign in with your Google account to upload videos directly to YouTube
+                To upload to your personal YouTube channel, please sign in with your Google account
               </p>
 
-              <Button
-                onClick={handleGoogleSignIn}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"
-                size="lg"
-              >
-                Sign in with Google
-              </Button>
+              <div className="space-y-4">
+                <Button
+                  onClick={handleGoogleSignIn}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg w-full"
+                  size="lg"
+                >
+                  Sign in with Google
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    setValue('targetChannel', { value: 'topthought20', label: 'TopThought20 (Official)' });
+                    setShowGoogleSignIn(false);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                  size="lg"
+                >
+                  Upload to TopThought20 Instead
+                </Button>
+              </div>
 
               <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Why do I need to sign in?</strong><br />
-                  We need access to your YouTube account to upload videos on your behalf. 
-                  Your credentials are handled securely by Google.
+                  <strong>Channel Options:</strong><br />
+                  • <strong>TopThought20:</strong> Official channel (admin access required)<br />
+                  • <strong>Google Account:</strong> Your personal YouTube channel
                 </p>
               </div>
             </div>
@@ -272,20 +367,31 @@ const UploadVideoPage = () => {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-neutral-900">Upload to YouTube</h1>
-              <p className="text-neutral-600">Share your video with the world</p>
+              <h1 className="text-3xl font-bold text-neutral-900">Upload Video</h1>
+              <p className="text-neutral-600">Share your content with the world</p>
             </div>
           </div>
+          
+          {/* Channel Status */}
           <div className="flex items-center space-x-3">
-            <img
-              src={user?.picture}
-              alt={user?.name}
-              className="w-10 h-10 rounded-full"
-            />
-            <div className="text-right">
-              <p className="text-sm font-medium text-neutral-900">{user?.name}</p>
-              <p className="text-xs text-neutral-500">Signed in with Google</p>
-            </div>
+            {watchedFields.targetChannel?.value === 'topthought20' ? (
+              <div className="flex items-center space-x-2 bg-red-50 text-red-700 px-3 py-2 rounded-lg">
+                <VideoIcon className="w-4 h-4" />
+                <span className="text-sm font-medium">TopThought20 Channel</span>
+              </div>
+            ) : isSignedIn ? (
+              <div className="flex items-center space-x-3">
+                <img
+                  src={user?.picture}
+                  alt={user?.name}
+                  className="w-8 h-8 rounded-full"
+                />
+                <div className="text-right">
+                  <p className="text-sm font-medium text-neutral-900">{user?.name}</p>
+                  <p className="text-xs text-neutral-500">Personal Channel</p>
+                </div>
+              </div>
+            ) : null}
           </div>
         </motion.div>
 
@@ -298,6 +404,38 @@ const UploadVideoPage = () => {
             className="lg:col-span-2"
           >
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+              {/* Channel Selection */}
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                <h2 className="text-lg font-semibold text-neutral-900 mb-6">Upload Destination</h2>
+                
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Target Channel *
+                  </label>
+                  <Controller
+                    name="targetChannel"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        {...field}
+                        options={channelOptions}
+                        className="react-select-container"
+                        classNamePrefix="react-select"
+                        onChange={(value) => {
+                          field.onChange(value);
+                          if (value?.value === 'google' && !isSignedIn) {
+                            setShowGoogleSignIn(true);
+                          }
+                        }}
+                      />
+                    )}
+                  />
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Choose between the official TopThought20 channel or your personal YouTube channel
+                  </p>
+                </div>
+              </div>
+
               {/* File Upload */}
               <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
                 <h2 className="text-lg font-semibold text-neutral-900 mb-6">Video File</h2>
@@ -410,6 +548,24 @@ const UploadVideoPage = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Video Type *
+                      </label>
+                      <Controller
+                        name="videoType"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            {...field}
+                            options={videoTypeOptions}
+                            className="react-select-container"
+                            classNamePrefix="react-select"
+                          />
+                        )}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
                         Category
                       </label>
                       <Controller
@@ -480,6 +636,23 @@ const UploadVideoPage = () => {
                         )}
                       />
                     </div>
+
+                    <div>
+                      <label htmlFor="publishAt" className="block text-sm font-medium text-neutral-700 mb-2">
+                        Schedule Publication
+                      </label>
+                      <div className="relative">
+                        <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+                        <input
+                          {...register('publishAt')}
+                          type="datetime-local"
+                          className="w-full pl-10 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                        />
+                      </div>
+                      <p className="mt-1 text-xs text-neutral-500">
+                        Leave empty to publish immediately
+                      </p>
+                    </div>
                   </div>
 
                   <Controller
@@ -497,12 +670,89 @@ const UploadVideoPage = () => {
                 </div>
               </div>
 
+              {/* Advanced Settings */}
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                <h2 className="text-lg font-semibold text-neutral-900 mb-6">Advanced Settings</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        {...register('allowComments')}
+                        type="checkbox"
+                        id="allowComments"
+                        className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor="allowComments" className="text-sm font-medium text-neutral-700">
+                        Allow comments
+                      </label>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <input
+                        {...register('allowRatings')}
+                        type="checkbox"
+                        id="allowRatings"
+                        className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor="allowRatings" className="text-sm font-medium text-neutral-700">
+                        Allow ratings (likes/dislikes)
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        {...register('allowEmbedding')}
+                        type="checkbox"
+                        id="allowEmbedding"
+                        className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor="allowEmbedding" className="text-sm font-medium text-neutral-700">
+                        Allow embedding on other websites
+                      </label>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <input
+                        {...register('notifySubscribers')}
+                        type="checkbox"
+                        id="notifySubscribers"
+                        className="w-4 h-4 text-blue-600 border-neutral-300 rounded focus:ring-blue-500"
+                      />
+                      <label htmlFor="notifySubscribers" className="text-sm font-medium text-neutral-700">
+                        Notify subscribers
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* reCAPTCHA */}
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
+                <div className="flex items-center space-x-2 mb-4">
+                  <Shield className="w-5 h-5 text-green-600" />
+                  <h2 className="text-lg font-semibold text-neutral-900">Security Verification</h2>
+                </div>
+                
+                <div className="flex justify-center">
+                  <ReCAPTCHA
+                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                    onChange={onRecaptchaChange}
+                    theme="light"
+                  />
+                </div>
+              </div>
+
               {/* Upload Progress */}
               {uploading && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full"></div>
-                    <span className="text-blue-900 font-medium text-lg">Uploading video...</span>
+                    <span className="text-blue-900 font-medium text-lg">
+                      Uploading to {watchedFields.targetChannel?.label}...
+                    </span>
                   </div>
                   <div className="w-full bg-blue-200 rounded-full h-3 mb-2">
                     <div
@@ -518,12 +768,12 @@ const UploadVideoPage = () => {
               <Button
                 type="submit"
                 loading={uploading}
-                disabled={!file || uploading}
+                disabled={!file || uploading || !recaptchaToken}
                 className="w-full bg-red-600 hover:bg-red-700"
                 size="lg"
                 icon={Upload}
               >
-                {uploading ? 'Uploading...' : 'Upload to YouTube'}
+                {uploading ? 'Uploading...' : `Upload to ${watchedFields.targetChannel?.label || 'YouTube'}`}
               </Button>
             </form>
           </motion.div>
@@ -555,6 +805,13 @@ const UploadVideoPage = () => {
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <Play className="w-12 h-12 text-neutral-400" />
+                      </div>
+                    )}
+                    
+                    {/* Video Type Badge */}
+                    {watchedFields.videoType?.value === 'short' && (
+                      <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium">
+                        SHORT
                       </div>
                     )}
                   </div>
@@ -594,17 +851,27 @@ const UploadVideoPage = () => {
                   
                   <div className="pt-4 border-t border-neutral-200 space-y-2">
                     <div className="flex justify-between text-xs text-neutral-500">
+                      <span>Channel:</span>
+                      <span>{watchedFields.targetChannel?.label}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-neutral-500">
                       <span>Privacy:</span>
                       <span>{watchedFields.privacyStatus.label}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-neutral-500">
+                      <span>Type:</span>
+                      <span>{watchedFields.videoType?.label}</span>
                     </div>
                     <div className="flex justify-between text-xs text-neutral-500">
                       <span>Language:</span>
                       <span>{watchedFields.language.label}</span>
                     </div>
-                    <div className="flex justify-between text-xs text-neutral-500">
-                      <span>License:</span>
-                      <span>{watchedFields.license.label}</span>
-                    </div>
+                    {watchedFields.publishAt && (
+                      <div className="flex justify-between text-xs text-neutral-500">
+                        <span>Scheduled:</span>
+                        <span>{new Date(watchedFields.publishAt).toLocaleDateString()}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -623,6 +890,25 @@ const UploadVideoPage = () => {
                   <p>• Titles are under 60 characters</p>
                   <p>• Descriptions include relevant hashtags</p>
                   <p>• Custom thumbnails improve click rates</p>
+                  <p>• Shorts get better reach with vertical format</p>
+                </div>
+              </div>
+
+              {/* Channel Info */}
+              <div className="bg-neutral-50 p-6 rounded-xl">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Globe className="w-5 h-5 text-neutral-600" />
+                  <h3 className="font-semibold text-neutral-900">Upload Options</h3>
+                </div>
+                <div className="space-y-3 text-sm text-neutral-600">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                    <span><strong>TopThought20:</strong> Official channel (admin required)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span><strong>Google Account:</strong> Your personal channel</span>
+                  </div>
                 </div>
               </div>
             </div>

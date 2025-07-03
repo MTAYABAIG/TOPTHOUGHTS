@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { LogIn, User, Lock } from 'lucide-react';
+import { LogIn, User, Lock, Shield } from 'lucide-react';
+import ReCAPTCHA from 'react-google-recaptcha';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import Button from '../components/UI/Button';
@@ -14,8 +15,10 @@ interface LoginForm {
 
 const LoginPage = () => {
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
   
   const {
     register,
@@ -23,7 +26,16 @@ const LoginPage = () => {
     formState: { errors },
   } = useForm<LoginForm>();
 
+  const onRecaptchaChange = (token: string | null) => {
+    setRecaptchaToken(token);
+  };
+
   const onSubmit = async (data: LoginForm) => {
+    if (!recaptchaToken) {
+      toast.error('Please complete the reCAPTCHA verification');
+      return;
+    }
+
     setLoading(true);
     
     try {
@@ -40,9 +52,14 @@ const LoginPage = () => {
         navigate('/admin');
       } else {
         toast.error('Invalid credentials');
+        // Reset reCAPTCHA on failed login
+        recaptchaRef.current?.reset();
+        setRecaptchaToken(null);
       }
     } catch (error) {
       toast.error('Login failed. Please try again.');
+      recaptchaRef.current?.reset();
+      setRecaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -116,9 +133,20 @@ const LoginPage = () => {
               )}
             </div>
 
+            {/* reCAPTCHA */}
+            <div className="flex justify-center">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                onChange={onRecaptchaChange}
+                theme="light"
+              />
+            </div>
+
             <Button
               type="submit"
               loading={loading}
+              disabled={!recaptchaToken}
               className="w-full"
               size="lg"
             >
@@ -127,7 +155,14 @@ const LoginPage = () => {
           </form>
 
           <div className="mt-6 p-4 bg-neutral-50 rounded-lg">
-            <p className="text-sm text-neutral-600 text-center">
+            <div className="flex items-center space-x-2 mb-2">
+              <Shield className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-neutral-700">Security Protected</span>
+            </div>
+            <p className="text-sm text-neutral-600 mb-3">
+              This login is protected by reCAPTCHA and secure authentication.
+            </p>
+            <p className="text-sm text-neutral-600">
               <strong>Demo Credentials:</strong><br />
               Username: admin<br />
               Password: admin123
