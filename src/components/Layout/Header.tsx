@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Menu, X, Brain, LogOut, Settings, Youtube, UserPlus } from 'lucide-react';
+import { Menu, X, Brain, LogOut, Settings, Youtube } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Header = () => {
@@ -13,10 +13,6 @@ const Header = () => {
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const handleSubscribe = () => {
-    window.open('https://youtube.com/@topthought20', '_blank');
   };
 
   const navItems = [
@@ -64,14 +60,16 @@ const Header = () => {
                 </Link>
               ))}
               
-              {/* YouTube Subscribe Button */}
-              <button
-                onClick={handleSubscribe}
-                className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+              {/* YouTube Channel Icon */}
+              <a
+                href="https://youtube.com/@topthought20"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center w-10 h-10 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200"
+                title="Visit our YouTube Channel"
               >
-                <Youtube className="w-4 h-4" />
-                <span>Subscribe</span>
-              </button>
+                <Youtube className="w-6 h-6" />
+              </a>
               
               {/* Admin Auth */}
               {isAuthenticated ? (
@@ -136,17 +134,16 @@ const Header = () => {
                   </Link>
                 ))}
                 
-                {/* YouTube Subscribe Button Mobile */}
-                <button
-                  onClick={() => {
-                    handleSubscribe();
-                    setIsMenuOpen(false);
-                  }}
-                  className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors w-fit"
+                {/* YouTube Channel Link Mobile */}
+                <a
+                  href="https://youtube.com/@topthought20"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-2 text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
                 >
-                  <Youtube className="w-4 h-4" />
-                  <span>Subscribe to Channel</span>
-                </button>
+                  <Youtube className="w-5 h-5" />
+                  <span>YouTube Channel</span>
+                </a>
                 
                 {/* Admin Auth Mobile */}
                 {isAuthenticated ? (
