@@ -24,7 +24,8 @@ class GeminiService {
       }
       
       this.genAI = new GoogleGenerativeAI(apiKey);
-      this.model = this.genAI.getGenerativeModel({ model: 'gemini-pro' });
+      // Updated to use the correct model name
+      this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     } catch (error) {
       console.error('Failed to initialize Gemini API:', error);
     }
@@ -65,6 +66,8 @@ class GeminiService {
           throw new Error('API quota exceeded. Please try again later.');
         } else if (error.message.includes('network')) {
           throw new Error('Network error. Please check your internet connection.');
+        } else if (error.message.includes('not found') || error.message.includes('not supported')) {
+          throw new Error('Model not available. Please try again later.');
         }
       }
       
