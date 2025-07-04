@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, User, X, Minimize2, Maximize2, Sparkles, MessageCircle, AlertCircle } from 'lucide-react';
+import { Send, Bot, User, X, Minimize2, Maximize2, Sparkles, Brain, AlertCircle } from 'lucide-react';
 import { geminiService, ChatMessage } from '../../services/geminiService';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const FloatingGeminiChat: React.FC = () => {
@@ -11,7 +12,7 @@ const FloatingGeminiChat: React.FC = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your AI assistant powered by Gemini. I can help you with content creation, video ideas, writing, and much more. How can I assist you today?',
+      content: 'Hello Admin! I\'m your AI assistant powered by Gemini. I can help you with content creation, video ideas, writing, and much more. How can I assist you today?',
       timestamp: new Date(),
     }
   ]);
@@ -20,6 +21,7 @@ const FloatingGeminiChat: React.FC = () => {
   const [hasApiKey, setHasApiKey] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { isAuthenticated } = useAuth();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -107,6 +109,11 @@ const FloatingGeminiChat: React.FC = () => {
     ]);
   };
 
+  // Only show for authenticated admin users
+  if (!isAuthenticated) {
+    return null;
+  }
+
   return (
     <>
       {/* Floating Button */}
@@ -121,7 +128,7 @@ const FloatingGeminiChat: React.FC = () => {
             onClick={() => setIsOpen(true)}
             className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-purple-500 to-blue-600 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50"
           >
-            <MessageCircle className="w-6 h-6" />
+            <Brain className="w-6 h-6" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -147,7 +154,7 @@ const FloatingGeminiChat: React.FC = () => {
                 <div>
                   <h3 className="font-semibold">Gemini AI</h3>
                   <p className="text-xs text-white/80">
-                    {hasApiKey ? 'Your AI Assistant' : 'API Key Required'}
+                    {hasApiKey ? 'Admin Assistant' : 'API Key Required'}
                   </p>
                 </div>
               </div>
@@ -275,7 +282,7 @@ const FloatingGeminiChat: React.FC = () => {
 
             {isMinimized && (
               <div className="p-4 text-center">
-                <p className="text-sm text-neutral-600">Chat minimized</p>
+                <p className="text-sm text-neutral-600">AI Assistant minimized</p>
               </div>
             )}
           </motion.div>

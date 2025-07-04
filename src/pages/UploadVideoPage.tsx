@@ -738,7 +738,7 @@ const UploadVideoPage = () => {
                 
                 <div className="flex justify-center">
                   <ReCAPTCHA
-                    sitekey={import.meta.env.RECAPTHCA_API_KEY}
+                    sitekey={import.meta.env.VITE_RECAPTHCA_API_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
                     onChange={onRecaptchaChange}
                     theme="light"
                   />
@@ -795,7 +795,7 @@ const UploadVideoPage = () => {
                 
                 <div className="space-y-4">
                   {/* Thumbnail Preview */}
-                  <div className="aspect-video bg-neutral-100 rounded-lg overflow-hidden">
+                  <div className="aspect-video bg-neutral-100 rounded-lg overflow-hidden relative">
                     {watchedFields.thumbnail ? (
                       <img
                         src={watchedFields.thumbnail}
