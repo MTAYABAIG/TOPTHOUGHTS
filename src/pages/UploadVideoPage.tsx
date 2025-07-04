@@ -738,7 +738,7 @@ const UploadVideoPage = () => {
                 
                 <div className="flex justify-center">
                   <ReCAPTCHA
-                    sitekey={import.meta.env.VITE_RECAPTHCA_API_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                    sitekey={import.meta.env.RECAPTHCA_API_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
                     onChange={onRecaptchaChange}
                     theme="light"
                   />

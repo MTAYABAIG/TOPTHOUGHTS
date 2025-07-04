@@ -212,7 +212,7 @@ export const GoogleAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             <div className="flex justify-center mb-6">
               <ReCAPTCHA
                 ref={recaptchaRef}
-                sitekey={import.meta.env.VITE_RECAPTHCA_API_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                sitekey={import.meta.env.RECAPTHCA_API_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
                 onChange={onRecaptchaChange}
                 theme="light"
               />
