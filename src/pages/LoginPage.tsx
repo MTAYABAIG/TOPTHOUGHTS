@@ -6,6 +6,7 @@ import { LogIn, User, Lock, Shield } from 'lucide-react';
 import ReCAPTCHA from 'react-google-recaptcha';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { authAPI } from '../services/apiService';
 import Button from '../components/UI/Button';
 
 interface LoginForm {
@@ -39,25 +40,14 @@ const LoginPage = () => {
     setLoading(true);
     
     try {
-      // Simulate API call - replace with actual authentication
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Mock successful login
-      if (data.username === 'admin' && data.password === 'admin123') {
-        const mockToken = 'mock-jwt-token';
-        const userData = { id: '1', username: 'admin', role: 'admin' };
-        
-        login(mockToken, userData);
-        toast.success('Welcome back!');
-        navigate('/admin');
-      } else {
-        toast.error('Invalid credentials');
-        // Reset reCAPTCHA on failed login
-        recaptchaRef.current?.reset();
-        setRecaptchaToken(null);
-      }
-    } catch (error) {
-      toast.error('Login failed. Please try again.');
+      const response = await authAPI.login(data);
+      login(response.token, response.user);
+      toast.success('Welcome back!');
+      navigate('/admin');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Login failed';
+      toast.error(errorMessage);
+      // Reset reCAPTCHA on failed login
       recaptchaRef.current?.reset();
       setRecaptchaToken(null);
     } finally {
@@ -137,7 +127,7 @@ const LoginPage = () => {
             <div className="flex justify-center">
               <ReCAPTCHA
                 ref={recaptchaRef}
-                sitekey={import.meta.env.RECAPTHCA_API_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                sitekey={import.meta.env.VITE_RECAPTHCA_API_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
                 onChange={onRecaptchaChange}
                 theme="light"
               />

@@ -4,17 +4,28 @@ import { motion } from 'framer-motion';
 import { Calendar, User, ArrowLeft, Share2 } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactPlayer from 'react-player/youtube';
-import { mockPosts } from '../data/mockData';
+import { usePost } from '../hooks/usePosts';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const BlogPostPage = () => {
-  const { id } = useParams();
-  const post = mockPosts.find(p => p._id === id);
+  const { id } = useParams<{ id: string }>();
+  const { post, loading, error } = usePost({ id: id! });
 
-  if (!post) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error || !post) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-neutral-900 mb-4">Post Not Found</h1>
+          <h1 className="text-2xl font-bold text-neutral-900 mb-4">
+            {error || 'Post Not Found'}
+          </h1>
           <Link
             to="/blog"
             className="text-primary-600 hover:text-primary-700 font-medium"
@@ -122,13 +133,10 @@ const BlogPostPage = () => {
           transition={{ duration: 0.7, delay: 0.4 }}
           className="prose prose-lg max-w-none mb-12"
         >
-          <div className="text-neutral-700 leading-relaxed space-y-6">
-            {post.content.split('\n\n').map((paragraph, index) => (
-              <p key={index} className="text-lg">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          <div 
+            className="text-neutral-700 leading-relaxed space-y-6"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+          />
         </motion.div>
 
         {/* Article Footer */}
@@ -146,6 +154,11 @@ const BlogPostPage = () => {
               {post.author && (
                 <p className="text-neutral-600">
                   By {post.author}
+                </p>
+              )}
+              {post.updatedAt !== post.createdAt && (
+                <p className="text-neutral-500 text-sm">
+                  Last updated: {format(new Date(post.updatedAt), 'MMMM d, yyyy')}
                 </p>
               )}
             </div>

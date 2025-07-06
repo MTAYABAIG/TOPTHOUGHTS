@@ -4,17 +4,28 @@ import { motion } from 'framer-motion';
 import { Calendar, User, ArrowLeft, ExternalLink, Play } from 'lucide-react';
 import { format } from 'date-fns';
 import ReactPlayer from 'react-player/youtube';
-import { mockPosts } from '../data/mockData';
+import { usePost } from '../hooks/usePosts';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const VideoPage = () => {
-  const { id } = useParams();
-  const post = mockPosts.find(p => p._id === id);
+  const { id } = useParams<{ id: string }>();
+  const { post, loading, error } = usePost({ id: id! });
 
-  if (!post) {
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error || !post) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-neutral-900 mb-4">Video Not Found</h1>
+          <h1 className="text-2xl font-bold text-neutral-900 mb-4">
+            {error || 'Video Not Found'}
+          </h1>
           <Link
             to="/blog"
             className="text-primary-600 hover:text-primary-700 font-medium"
@@ -130,13 +141,10 @@ const VideoPage = () => {
             <div className="bg-white rounded-xl p-8 shadow-sm border border-neutral-200">
               <h2 className="text-2xl font-bold text-neutral-900 mb-6">About This Video</h2>
               
-              <div className="prose prose-lg max-w-none text-neutral-700 space-y-6">
-                {post.content.split('\n\n').slice(0, 3).map((paragraph, index) => (
-                  <p key={index}>
-                    {paragraph}
-                  </p>
-                ))}
-              </div>
+              <div 
+                className="prose prose-lg max-w-none text-neutral-700 space-y-6"
+                dangerouslySetInnerHTML={{ __html: post.content.substring(0, 500) + '...' }}
+              />
 
               <div className="mt-8 pt-6 border-t border-neutral-200">
                 <Link
@@ -192,7 +200,7 @@ const VideoPage = () => {
                   Get notified when we publish new videos and content.
                 </p>
                 <a
-                  href="https://youtube.com/@topthought"
+                  href="https://youtube.com/@topthought20"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center space-x-2 bg-white text-red-600 px-4 py-2 rounded-lg font-medium hover:bg-red-50 transition-colors"

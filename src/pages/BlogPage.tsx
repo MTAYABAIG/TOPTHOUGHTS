@@ -1,29 +1,37 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter } from 'lucide-react';
+import { Search } from 'lucide-react';
 import FeaturedPost from '../components/Blog/FeaturedPost';
 import BlogCard from '../components/Blog/BlogCard';
-import { mockPosts } from '../data/mockData';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
+import { usePosts } from '../hooks/usePosts';
 
 const BlogPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 6;
 
-  const featuredPost = mockPosts[0];
-  const regularPosts = mockPosts.slice(1);
+  const { posts, loading, error, totalPages, total } = usePosts({
+    page: currentPage,
+    limit: postsPerPage,
+    search: searchTerm,
+  });
 
-  // Filter posts based on search term
-  const filteredPosts = regularPosts.filter(post =>
-    post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const featuredPost = posts[0];
+  const regularPosts = posts.slice(1);
 
-  // Pagination logic
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
-  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  if (loading && posts.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8">
@@ -41,6 +49,11 @@ const BlogPage = () => {
           <p className="text-lg text-neutral-600 max-w-2xl mx-auto">
             Explore our collection of articles, tutorials, and insights.
           </p>
+          {total > 0 && (
+            <p className="text-sm text-neutral-500 mt-2">
+              {total} article{total !== 1 ? 's' : ''} available
+            </p>
+          )}
         </motion.div>
 
         {/* Search Bar */}
@@ -50,34 +63,74 @@ const BlogPage = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="max-w-lg mx-auto mb-12"
         >
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search articles..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
-            />
-          </div>
+          <form onSubmit={handleSearch}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search articles..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all"
+              />
+            </div>
+          </form>
         </motion.div>
 
+        {/* Error State */}
+        {error && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-12"
+          >
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
+              <p className="text-red-600">{error}</p>
+            </div>
+          </motion.div>
+        )}
+
         {/* Featured Post */}
-        <FeaturedPost post={featuredPost} />
+        {featuredPost && !searchTerm && (
+          <FeaturedPost post={featuredPost} />
+        )}
 
         {/* Posts Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {currentPosts.map((post, index) => (
-            <motion.div
-              key={post._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-            >
-              <BlogCard post={post} />
-            </motion.div>
-          ))}
-        </div>
+        {regularPosts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {regularPosts.map((post, index) => (
+              <motion.div
+                key={post._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+              >
+                <BlogCard post={post} />
+              </motion.div>
+            ))}
+          </div>
+        ) : !loading && posts.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="text-center py-12"
+          >
+            <p className="text-lg text-neutral-600">
+              {searchTerm 
+                ? `No articles found for "${searchTerm}". Try a different search term.`
+                : 'No articles available yet.'
+              }
+            </p>
+          </motion.div>
+        )}
+
+        {/* Loading State */}
+        {loading && posts.length > 0 && (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner />
+          </div>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (
@@ -92,7 +145,8 @@ const BlogPage = () => {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  disabled={loading}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                     currentPage === page
                       ? 'bg-primary-500 text-white'
                       : 'bg-white text-neutral-700 hover:bg-neutral-100'
@@ -102,20 +156,6 @@ const BlogPage = () => {
                 </button>
               ))}
             </div>
-          </motion.div>
-        )}
-
-        {/* No Results */}
-        {filteredPosts.length === 0 && searchTerm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="text-center py-12"
-          >
-            <p className="text-lg text-neutral-600">
-              No articles found for "{searchTerm}". Try a different search term.
-            </p>
           </motion.div>
         )}
       </div>

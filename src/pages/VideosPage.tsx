@@ -3,44 +3,42 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Search, Play, Calendar, User, Eye, Filter } from 'lucide-react';
 import { format } from 'date-fns';
-import { mockPosts } from '../data/mockData';
+import { usePosts } from '../hooks/usePosts';
 import { useYouTubeStats } from '../hooks/useYouTubeStats';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 const VideosPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const videosPerPage = 9;
   const youtubeStats = useYouTubeStats();
 
-  // Filter posts that have YouTube videos
-  const videoPosts = mockPosts.filter(post => post.youtubeUrl);
-
-  // Filter videos based on search term and category
-  const filteredVideos = videoPosts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         post.content.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
+  const { posts, loading, totalPages } = usePosts({
+    page: currentPage,
+    limit: videosPerPage,
+    search: searchTerm,
   });
 
-  // Pagination logic
-  const indexOfLastVideo = currentPage * videosPerPage;
-  const indexOfFirstVideo = indexOfLastVideo - videosPerPage;
-  const currentVideos = filteredVideos.slice(indexOfFirstVideo, indexOfLastVideo);
-  const totalPages = Math.ceil(filteredVideos.length / videosPerPage);
+  // Filter posts that have YouTube videos
+  const videoPosts = posts.filter(post => post.youtubeUrl);
 
   const getYouTubeThumbnail = (url: string) => {
     const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/)?.[1];
     return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
   };
 
-  const categories = [
-    { value: 'all', label: 'All Videos' },
-    { value: 'technology', label: 'Technology' },
-    { value: 'business', label: 'Business' },
-    { value: 'education', label: 'Education' },
-    { value: 'tutorials', label: 'Tutorials' },
-  ];
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCurrentPage(1); // Reset to first page when searching
+  };
+
+  if (loading && videoPosts.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8">
@@ -63,40 +61,25 @@ const VideosPage = () => {
           </p>
         </motion.div>
 
-        {/* Search and Filter Bar */}
+        {/* Search Bar */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="flex flex-col md:flex-row gap-4 mb-12"
+          className="max-w-lg mx-auto mb-12"
         >
-          {/* Search Bar */}
-          <div className="relative flex-1 max-w-lg">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search videos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
-            />
-          </div>
-
-          {/* Category Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="pl-10 pr-8 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all bg-white"
-            >
-              {categories.map((category) => (
-                <option key={category.value} value={category.value}>
-                  {category.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <form onSubmit={handleSearch}>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search videos..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
+              />
+            </div>
+          </form>
         </motion.div>
 
         {/* Real YouTube Stats */}
@@ -162,90 +145,117 @@ const VideosPage = () => {
         </motion.div>
 
         {/* Videos Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
-          {currentVideos.map((video, index) => (
-            <motion.article
-              key={video._id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
-            >
-              {/* Video Thumbnail */}
-              <div className="relative aspect-video overflow-hidden">
-                <img
-                  src={getYouTubeThumbnail(video.youtubeUrl!) || video.imageUrl || 'https://images.pexels.com/photos/261662/pexels-photo-261662.jpeg?auto=compress&cs=tinysrgb&w=800'}
-                  alt={video.title}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-                
-                {/* Play Button Overlay */}
-                <Link
-                  to={`/video/${video._id}`}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center transform transition-transform group-hover:scale-110 shadow-lg">
-                    <Play className="w-8 h-8 text-white ml-1" />
-                  </div>
-                </Link>
-
-                {/* Duration Badge */}
-                <div className="absolute bottom-3 right-3 bg-black/80 text-white px-2 py-1 rounded text-sm font-medium">
-                  12:34
-                </div>
-              </div>
-
-              {/* Video Info */}
-              <div className="p-6">
-                <div className="flex items-center space-x-4 text-sm text-neutral-500 mb-3">
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>{format(new Date(video.createdAt), 'MMM d, yyyy')}</span>
-                  </div>
-                  <div className="flex items-center space-x-1">
-                    <Eye className="w-4 h-4" />
-                    <span>1.2K views</span>
-                  </div>
-                </div>
-
-                <Link to={`/video/${video._id}`}>
-                  <h3 className="font-bold text-lg text-neutral-900 mb-3 group-hover:text-black transition-colors line-clamp-2">
-                    {video.title}
-                  </h3>
-                </Link>
-
-                <p className="text-neutral-600 text-sm mb-4 line-clamp-2">
-                  {video.content.substring(0, 120)}...
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 bg-neutral-200 rounded-full flex items-center justify-center">
-                      <User className="w-4 h-4 text-neutral-600" />
+        {videoPosts.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {videoPosts.map((video, index) => (
+              <motion.article
+                key={video._id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden group"
+              >
+                {/* Video Thumbnail */}
+                <div className="relative aspect-video overflow-hidden">
+                  <img
+                    src={getYouTubeThumbnail(video.youtubeUrl!) || video.imageUrl || 'https://images.pexels.com/photos/261662/pexels-photo-261662.jpeg?auto=compress&cs=tinysrgb&w=800'}
+                    alt={video.title}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                  
+                  {/* Play Button Overlay */}
+                  <Link
+                    to={`/video/${video._id}`}
+                    className="absolute inset-0 flex items-center justify-center"
+                  >
+                    <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center transform transition-transform group-hover:scale-110 shadow-lg">
+                      <Play className="w-8 h-8 text-white ml-1" />
                     </div>
-                    <span className="text-sm text-neutral-600">{video.author || 'Top Thought'}</span>
-                  </div>
+                  </Link>
 
-                  <div className="flex space-x-2">
-                    <Link
-                      to={`/video/${video._id}`}
-                      className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
-                    >
-                      Watch
-                    </Link>
-                    <Link
-                      to={`/blog/${video._id}`}
-                      className="bg-neutral-100 text-neutral-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
-                    >
-                      Article
-                    </Link>
+                  {/* Duration Badge */}
+                  <div className="absolute bottom-3 right-3 bg-black/80 text-white px-2 py-1 rounded text-sm font-medium">
+                    12:34
                   </div>
                 </div>
-              </div>
-            </motion.article>
-          ))}
-        </div>
+
+                {/* Video Info */}
+                <div className="p-6">
+                  <div className="flex items-center space-x-4 text-sm text-neutral-500 mb-3">
+                    <div className="flex items-center space-x-1">
+                      <Calendar className="w-4 h-4" />
+                      <span>{format(new Date(video.createdAt), 'MMM d, yyyy')}</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                      <Eye className="w-4 h-4" />
+                      <span>1.2K views</span>
+                    </div>
+                  </div>
+
+                  <Link to={`/video/${video._id}`}>
+                    <h3 className="font-bold text-lg text-neutral-900 mb-3 group-hover:text-black transition-colors line-clamp-2">
+                      {video.title}
+                    </h3>
+                  </Link>
+
+                  <p className="text-neutral-600 text-sm mb-4 line-clamp-2">
+                    {video.content.replace(/<[^>]*>/g, '').substring(0, 120)}...
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 bg-neutral-200 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 text-neutral-600" />
+                      </div>
+                      <span className="text-sm text-neutral-600">{video.author || 'Top Thought'}</span>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Link
+                        to={`/video/${video._id}`}
+                        className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
+                      >
+                        Watch
+                      </Link>
+                      <Link
+                        to={`/blog/${video._id}`}
+                        className="bg-neutral-100 text-neutral-700 px-3 py-1 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
+                      >
+                        Article
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        ) : !loading && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
+            className="text-center py-12"
+          >
+            <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-neutral-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-neutral-900 mb-2">No videos found</h3>
+            <p className="text-neutral-600">
+              {searchTerm 
+                ? `No videos found for "${searchTerm}". Try a different search term.`
+                : 'No videos available yet.'
+              }
+            </p>
+          </motion.div>
+        )}
+
+        {/* Loading State */}
+        {loading && videoPosts.length > 0 && (
+          <div className="flex justify-center py-8">
+            <LoadingSpinner />
+          </div>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (
@@ -260,7 +270,8 @@ const VideosPage = () => {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  disabled={loading}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
                     currentPage === page
                       ? 'bg-black text-white'
                       : 'bg-white text-neutral-700 hover:bg-neutral-100'
@@ -270,24 +281,6 @@ const VideosPage = () => {
                 </button>
               ))}
             </div>
-          </motion.div>
-        )}
-
-        {/* No Results */}
-        {filteredVideos.length === 0 && searchTerm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="text-center py-12"
-          >
-            <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-neutral-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">No videos found</h3>
-            <p className="text-neutral-600">
-              No videos found for "{searchTerm}". Try a different search term.
-            </p>
           </motion.div>
         )}
 

@@ -4,30 +4,27 @@ import { motion } from 'framer-motion';
 import { useForm, Controller } from 'react-hook-form';
 import { ArrowLeft, Save, Eye, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import Select from 'react-select';
+import { postsAPI, UpdatePostData } from '../services/apiService';
+import { usePost } from '../hooks/usePosts';
 import Button from '../components/UI/Button';
 import ImageUpload from '../components/UI/ImageUpload';
-import TagInput from '../components/UI/TagInput';
 import RichTextEditor from '../components/UI/RichTextEditor';
-import { mockPosts } from '../data/mockData';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
 
 interface PostForm {
   title: string;
-  slug: string;
   content: string;
-  excerpt: string;
-  featuredImage: string;
-  tags: string[];
-  category: { value: string; label: string } | null;
-  videoUrl: string;
-  isPublished: boolean;
+  imageUrl: string;
+  youtubeUrl: string;
 }
 
 const EditPostPage = () => {
   const [loading, setLoading] = useState(false);
-  const [post, setPost] = useState<any>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
+  
+  const { post, loading: postLoading, error } = usePost({ id: id! });
   
   const {
     register,
@@ -40,99 +37,56 @@ const EditPostPage = () => {
 
   const watchedFields = watch();
 
-  const categoryOptions = [
-    { value: 'technology', label: 'Technology' },
-    { value: 'business', label: 'Business' },
-    { value: 'design', label: 'Design' },
-    { value: 'development', label: 'Development' },
-    { value: 'marketing', label: 'Marketing' },
-    { value: 'lifestyle', label: 'Lifestyle' },
-    { value: 'education', label: 'Education' },
-    { value: 'science', label: 'Science' },
-  ];
-
-  // Generate slug from title
-  const generateSlug = (title: string) => {
-    return title
-      .toLowerCase()
-      .replace(/[^a-z0-9 -]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim();
-  };
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const title = e.target.value;
-    setValue('title', title);
-    if (!watchedFields.slug || watchedFields.slug === generateSlug(watchedFields.title)) {
-      setValue('slug', generateSlug(title));
-    }
-  };
-
   useEffect(() => {
-    // Find the post by ID
-    const foundPost = mockPosts.find(p => p._id === id);
-    if (foundPost) {
-      setPost(foundPost);
-      setValue('title', foundPost.title);
-      setValue('slug', generateSlug(foundPost.title));
-      setValue('content', foundPost.content);
-      setValue('excerpt', foundPost.content.substring(0, 200));
-      setValue('featuredImage', foundPost.imageUrl || '');
-      setValue('tags', ['technology', 'web-development']); // Mock tags
-      setValue('category', { value: 'technology', label: 'Technology' }); // Mock category
-      setValue('videoUrl', foundPost.youtubeUrl || '');
-      setValue('isPublished', true);
+    if (post) {
+      setValue('title', post.title);
+      setValue('content', post.content);
+      setValue('imageUrl', post.imageUrl || '');
+      setValue('youtubeUrl', post.youtubeUrl || '');
     }
-  }, [id, setValue]);
+  }, [post, setValue]);
 
   const onSubmit = async (data: PostForm) => {
+    if (!id) return;
+    
     setLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updateData: UpdatePostData = {
+        title: data.title,
+        content: data.content,
+        imageUrl: data.imageUrl || undefined,
+        youtubeUrl: data.youtubeUrl || undefined,
+      };
       
-      // In a real app, you would send this data to your backend
-      console.log('Updating post:', {
-        id,
-        ...data,
-        category: data.category?.value,
-        updatedAt: new Date().toISOString(),
-      });
-      
-      toast.success(`Post ${data.isPublished ? 'updated and published' : 'saved as draft'} successfully!`);
-      navigate('/admin');
-    } catch (error) {
-      toast.error('Failed to update post. Please try again.');
+      await postsAPI.updatePost(id, updateData);
+      toast.success('Post updated successfully!');
+      navigate(`/blog/${id}`);
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to update post';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) {
+    if (!id || !window.confirm('Are you sure you want to delete this post?')) {
       return;
     }
 
-    setLoading(true);
+    setDeleteLoading(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await postsAPI.deletePost(id);
       toast.success('Post deleted successfully!');
       navigate('/admin');
-    } catch (error) {
-      toast.error('Failed to delete post. Please try again.');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to delete post';
+      toast.error(errorMessage);
     } finally {
-      setLoading(false);
+      setDeleteLoading(false);
     }
-  };
-
-  const saveDraft = () => {
-    setValue('isPublished', false);
-    handleSubmit(onSubmit)();
   };
 
   // Extract plain text from HTML content for preview
@@ -142,11 +96,21 @@ const EditPostPage = () => {
     return div.textContent || div.innerText || '';
   };
 
-  if (!post) {
+  if (postLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error || !post) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-neutral-900 mb-4">Post Not Found</h1>
+          <h1 className="text-2xl font-bold text-neutral-900 mb-4">
+            {error || 'Post Not Found'}
+          </h1>
           <Link
             to="/admin"
             className="text-black hover:text-neutral-700 font-medium"
@@ -184,6 +148,7 @@ const EditPostPage = () => {
             onClick={handleDelete}
             variant="danger"
             icon={Trash2}
+            loading={deleteLoading}
             disabled={loading}
           >
             Delete Post
@@ -211,40 +176,12 @@ const EditPostPage = () => {
                     <input
                       {...register('title', { required: 'Title is required' })}
                       type="text"
-                      onChange={handleTitleChange}
                       className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
                       placeholder="Enter an engaging post title"
                     />
                     {errors.title && (
                       <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
                     )}
-                  </div>
-
-                  <div>
-                    <label htmlFor="slug" className="block text-sm font-medium text-neutral-700 mb-2">
-                      Slug
-                    </label>
-                    <input
-                      {...register('slug')}
-                      type="text"
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
-                      placeholder="url-friendly-slug"
-                    />
-                    <p className="mt-1 text-xs text-neutral-500">
-                      Auto-generated from title. Edit if needed.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label htmlFor="excerpt" className="block text-sm font-medium text-neutral-700 mb-2">
-                      Excerpt
-                    </label>
-                    <textarea
-                      {...register('excerpt')}
-                      rows={3}
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all resize-none"
-                      placeholder="Brief description for previews and SEO"
-                    />
                   </div>
                 </div>
               </div>
@@ -279,7 +216,7 @@ const EditPostPage = () => {
                 
                 <div className="space-y-6">
                   <Controller
-                    name="featuredImage"
+                    name="imageUrl"
                     control={control}
                     render={({ field }) => (
                       <ImageUpload
@@ -292,13 +229,13 @@ const EditPostPage = () => {
                   />
 
                   <div>
-                    <label htmlFor="videoUrl" className="block text-sm font-medium text-neutral-700 mb-2">
+                    <label htmlFor="youtubeUrl" className="block text-sm font-medium text-neutral-700 mb-2">
                       YouTube Video URL
                     </label>
                     <input
-                      {...register('videoUrl')}
+                      {...register('youtubeUrl')}
                       type="url"
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-all transition-all"
+                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent outline-none transition-all"
                       placeholder="https://www.youtube.com/watch?v=..."
                     />
                     <p className="mt-1 text-xs text-neutral-500">
@@ -308,87 +245,17 @@ const EditPostPage = () => {
                 </div>
               </div>
 
-              {/* Categories and Tags */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-6">Organization</h2>
-                
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Category
-                    </label>
-                    <Controller
-                      name="category"
-                      control={control}
-                      render={({ field }) => (
-                        <Select
-                          {...field}
-                          options={categoryOptions}
-                          placeholder="Select a category"
-                          className="react-select-container"
-                          classNamePrefix="react-select"
-                          isClearable
-                        />
-                      )}
-                    />
-                  </div>
-
-                  <Controller
-                    name="tags"
-                    control={control}
-                    render={({ field }) => (
-                      <TagInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        label="Tags"
-                        placeholder="Type and press Enter to add tags"
-                      />
-                    )}
-                  />
-                </div>
-              </div>
-
-              {/* Publishing Options */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-neutral-200">
-                <h2 className="text-lg font-semibold text-neutral-900 mb-6">Publishing</h2>
-                
-                <div className="flex items-center space-x-3">
-                  <input
-                    {...register('isPublished')}
-                    type="checkbox"
-                    id="isPublished"
-                    className="w-4 h-4 text-black border-neutral-300 rounded focus:ring-black"
-                  />
-                  <label htmlFor="isPublished" className="text-sm font-medium text-neutral-700">
-                    Published
-                  </label>
-                </div>
-                <p className="mt-2 text-xs text-neutral-500">
-                  Uncheck to save as draft
-                </p>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  type="submit"
-                  loading={loading}
-                  icon={Save}
-                  size="lg"
-                  onClick={() => setValue('isPublished', true)}
-                >
-                  {loading ? 'Updating...' : 'Update Post'}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  onClick={saveDraft}
-                  disabled={loading}
-                >
-                  Save Draft
-                </Button>
-              </div>
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                loading={loading}
+                icon={Save}
+                size="lg"
+                className="w-full md:w-auto"
+                disabled={deleteLoading}
+              >
+                {loading ? 'Updating...' : 'Update Post'}
+              </Button>
             </form>
           </motion.div>
 
@@ -407,9 +274,9 @@ const EditPostPage = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {watchedFields.featuredImage && (
+                  {watchedFields.imageUrl && (
                     <img
-                      src={watchedFields.featuredImage}
+                      src={watchedFields.imageUrl}
                       alt="Preview"
                       className="w-full h-32 object-cover rounded-lg"
                       onError={(e) => {
@@ -423,35 +290,11 @@ const EditPostPage = () => {
                       {watchedFields.title || 'Post Title'}
                     </h3>
                     <p className="text-neutral-600 text-sm line-clamp-3">
-                      {watchedFields.excerpt || getPlainTextFromHTML(watchedFields.content)?.substring(0, 150) || 'Post content will appear here...'}
+                      {getPlainTextFromHTML(watchedFields.content)?.substring(0, 150) || 'Post content will appear here...'}
                     </p>
                   </div>
                   
-                  {watchedFields.category && (
-                    <div className="inline-block bg-neutral-100 text-neutral-700 px-2 py-1 rounded-md text-xs font-medium">
-                      {watchedFields.category.label}
-                    </div>
-                  )}
-                  
-                  {watchedFields.tags && watchedFields.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {watchedFields.tags.slice(0, 3).map((tag, index) => (
-                        <span
-                          key={index}
-                          className="bg-neutral-100 text-neutral-600 px-2 py-1 rounded-md text-xs"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                      {watchedFields.tags.length > 3 && (
-                        <span className="text-xs text-neutral-500">
-                          +{watchedFields.tags.length - 3} more
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  
-                  {watchedFields.videoUrl && (
+                  {watchedFields.youtubeUrl && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                       <p className="text-red-600 text-sm">
                         📹 YouTube video will be embedded
@@ -461,7 +304,7 @@ const EditPostPage = () => {
                   
                   <div className="pt-4 border-t border-neutral-200">
                     <p className="text-xs text-neutral-500">
-                      Status: {watchedFields.isPublished ? 'Published' : 'Draft'}
+                      Post ID: {post._id}
                     </p>
                   </div>
                 </div>

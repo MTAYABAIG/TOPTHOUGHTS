@@ -4,11 +4,12 @@ import { ArrowRight, BookOpen, Bell, Mail, TrendingUp, Users, Video, Play } from
 import Button from '../components/UI/Button';
 import BlogCard from '../components/Blog/BlogCard';
 import StatsCard from '../components/UI/StatsCard';
-import { mockPosts } from '../data/mockData';
+import LoadingSpinner from '../components/UI/LoadingSpinner';
+import { usePosts } from '../hooks/usePosts';
 import { useYouTubeStats } from '../hooks/useYouTubeStats';
 
 const HomePage = () => {
-  const featuredPosts = mockPosts.slice(0, 3);
+  const { posts, loading } = usePosts({ limit: 3 });
   const youtubeStats = useYouTubeStats();
 
   return (
@@ -84,11 +85,21 @@ const HomePage = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredPosts.map((post) => (
-              <BlogCard key={post._id} post={post} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <LoadingSpinner />
+            </div>
+          ) : posts.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {posts.map((post) => (
+                <BlogCard key={post._id} post={post} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-neutral-600">No posts available yet.</p>
+            </div>
+          )}
         </div>
       </section>
 
