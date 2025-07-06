@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Edit, Trash2, Eye, Calendar, User, Upload, Video } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Calendar, User, Upload, Video, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 import Button from '../components/UI/Button';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
+import EmptyState from '../components/UI/EmptyState';
 import { usePosts } from '../hooks/usePosts';
 import { postsAPI } from '../services/apiService';
 
@@ -156,13 +157,27 @@ const AdminDashboard = () => {
           </div>
           
           {posts.length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-neutral-600 mb-4">No posts found. Create your first post!</p>
-              <Link to="/admin/create">
-                <Button icon={Plus}>
-                  Create New Post
-                </Button>
-              </Link>
+            <div className="p-8">
+              <EmptyState
+                icon={Settings}
+                title="Welcome to Your Dashboard"
+                description="You haven't created any posts yet. Start building your content library by creating your first blog post. You can add text, images, and even YouTube videos!"
+                illustration="admin"
+                action={
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <Link to="/admin/create">
+                      <Button icon={Plus} size="lg">
+                        Create Your First Post
+                      </Button>
+                    </Link>
+                    <Link to="/upload-video">
+                      <Button icon={Video} variant="outline" size="lg">
+                        Upload Video
+                      </Button>
+                    </Link>
+                  </div>
+                }
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">

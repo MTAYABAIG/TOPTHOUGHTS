@@ -1,15 +1,20 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search } from 'lucide-react';
+import { Search, PenTool, Plus } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import FeaturedPost from '../components/Blog/FeaturedPost';
 import BlogCard from '../components/Blog/BlogCard';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
+import EmptyState from '../components/UI/EmptyState';
+import Button from '../components/UI/Button';
 import { usePosts } from '../hooks/usePosts';
+import { useAuth } from '../contexts/AuthContext';
 
 const BlogPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const postsPerPage = 6;
+  const { isAuthenticated } = useAuth();
 
   const { posts, loading, error, totalPages, total } = usePosts({
     page: currentPage,
@@ -110,19 +115,32 @@ const BlogPage = () => {
             ))}
           </div>
         ) : !loading && posts.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="text-center py-12"
-          >
-            <p className="text-lg text-neutral-600">
-              {searchTerm 
-                ? `No articles found for "${searchTerm}". Try a different search term.`
-                : 'No articles available yet.'
-              }
-            </p>
-          </motion.div>
+          <EmptyState
+            icon={searchTerm ? Search : PenTool}
+            title={searchTerm ? "No Articles Found" : "No Articles Yet"}
+            description={
+              searchTerm 
+                ? `We couldn't find any articles matching "${searchTerm}". Try adjusting your search terms or browse all articles.`
+                : "This is where amazing content will live. Start by creating your first blog post and share your thoughts with the world."
+            }
+            illustration={searchTerm ? 'search' : 'posts'}
+            action={
+              !searchTerm && isAuthenticated ? (
+                <Link to="/admin/create">
+                  <Button icon={Plus} size="lg">
+                    Create Your First Post
+                  </Button>
+                </Link>
+              ) : searchTerm ? (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSearchTerm('')}
+                >
+                  Clear Search
+                </Button>
+              ) : null
+            }
+          />
         )}
 
         {/* Loading State */}

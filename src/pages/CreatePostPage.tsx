@@ -8,6 +8,7 @@ import { postsAPI, CreatePostData } from '../services/apiService';
 import Button from '../components/UI/Button';
 import ImageUpload from '../components/UI/ImageUpload';
 import RichTextEditor from '../components/UI/RichTextEditor';
+import AITitleEnhancer from '../components/UI/AITitleEnhancer';
 
 interface PostForm {
   title: string;
@@ -106,9 +107,15 @@ const CreatePostPage = () => {
                 
                 <div className="space-y-6">
                   <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-2">
-                      Title *
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="title" className="block text-sm font-medium text-neutral-700">
+                        Title *
+                      </label>
+                      <AITitleEnhancer
+                        currentTitle={watchedFields.title}
+                        onTitleSelect={(title) => setValue('title', title)}
+                      />
+                    </div>
                     <input
                       {...register('title', { required: 'Title is required' })}
                       type="text"
@@ -118,6 +125,9 @@ const CreatePostPage = () => {
                     {errors.title && (
                       <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
                     )}
+                    <p className="mt-1 text-xs text-neutral-500">
+                      {watchedFields.title.length}/60 characters {watchedFields.title.length > 60 && '(too long for SEO)'}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -236,6 +246,41 @@ const CreatePostPage = () => {
                       </p>
                     </div>
                   )}
+
+                  {/* SEO Tips */}
+                  <div className="pt-4 border-t border-neutral-200">
+                    <h4 className="text-sm font-medium text-neutral-700 mb-2">SEO Tips</h4>
+                    <div className="space-y-1 text-xs text-neutral-500">
+                      <div className={`flex items-center space-x-2 ${
+                        watchedFields.title.length > 0 && watchedFields.title.length <= 60 
+                          ? 'text-green-600' 
+                          : 'text-yellow-600'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          watchedFields.title.length > 0 && watchedFields.title.length <= 60 
+                            ? 'bg-green-500' 
+                            : 'bg-yellow-500'
+                        }`} />
+                        <span>Title length: {watchedFields.title.length}/60</span>
+                      </div>
+                      <div className={`flex items-center space-x-2 ${
+                        watchedFields.content.length > 300 ? 'text-green-600' : 'text-yellow-600'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          watchedFields.content.length > 300 ? 'bg-green-500' : 'bg-yellow-500'
+                        }`} />
+                        <span>Content length: {getPlainTextFromHTML(watchedFields.content)?.length || 0} chars</span>
+                      </div>
+                      <div className={`flex items-center space-x-2 ${
+                        watchedFields.imageUrl ? 'text-green-600' : 'text-neutral-400'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          watchedFields.imageUrl ? 'bg-green-500' : 'bg-neutral-300'
+                        }`} />
+                        <span>Featured image</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,17 +1,21 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Play, Calendar, User, Eye, Filter } from 'lucide-react';
+import { Search, Play, Calendar, User, Eye, Video as VideoIcon, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePosts } from '../hooks/usePosts';
 import { useYouTubeStats } from '../hooks/useYouTubeStats';
+import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
+import EmptyState from '../components/UI/EmptyState';
+import Button from '../components/UI/Button';
 
 const VideosPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const videosPerPage = 9;
   const youtubeStats = useYouTubeStats();
+  const { isAuthenticated } = useAuth();
 
   const { posts, loading, totalPages } = usePosts({
     page: currentPage,
@@ -231,23 +235,32 @@ const VideosPage = () => {
             ))}
           </div>
         ) : !loading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="text-center py-12"
-          >
-            <div className="w-16 h-16 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search className="w-8 h-8 text-neutral-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">No videos found</h3>
-            <p className="text-neutral-600">
-              {searchTerm 
-                ? `No videos found for "${searchTerm}". Try a different search term.`
-                : 'No videos available yet.'
-              }
-            </p>
-          </motion.div>
+          <EmptyState
+            icon={searchTerm ? Search : VideoIcon}
+            title={searchTerm ? "No Videos Found" : "No Videos Yet"}
+            description={
+              searchTerm 
+                ? `We couldn't find any videos matching "${searchTerm}". Try different keywords or browse all content.`
+                : "Your video library is waiting to be filled with amazing content. Create posts with YouTube videos to build your video collection."
+            }
+            illustration={searchTerm ? 'search' : 'videos'}
+            action={
+              !searchTerm && isAuthenticated ? (
+                <Link to="/admin/create">
+                  <Button icon={Plus} size="lg">
+                    Create Video Post
+                  </Button>
+                </Link>
+              ) : searchTerm ? (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSearchTerm('')}
+                >
+                  Clear Search
+                </Button>
+              ) : null
+            }
+          />
         )}
 
         {/* Loading State */}

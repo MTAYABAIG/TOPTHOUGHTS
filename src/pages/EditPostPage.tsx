@@ -10,6 +10,7 @@ import Button from '../components/UI/Button';
 import ImageUpload from '../components/UI/ImageUpload';
 import RichTextEditor from '../components/UI/RichTextEditor';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
+import AITitleEnhancer from '../components/UI/AITitleEnhancer';
 
 interface PostForm {
   title: string;
@@ -170,9 +171,15 @@ const EditPostPage = () => {
                 
                 <div className="space-y-6">
                   <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-2">
-                      Title *
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="title" className="block text-sm font-medium text-neutral-700">
+                        Title *
+                      </label>
+                      <AITitleEnhancer
+                        currentTitle={watchedFields.title}
+                        onTitleSelect={(title) => setValue('title', title)}
+                      />
+                    </div>
                     <input
                       {...register('title', { required: 'Title is required' })}
                       type="text"
@@ -182,6 +189,9 @@ const EditPostPage = () => {
                     {errors.title && (
                       <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
                     )}
+                    <p className="mt-1 text-xs text-neutral-500">
+                      {watchedFields.title?.length || 0}/60 characters {(watchedFields.title?.length || 0) > 60 && '(too long for SEO)'}
+                    </p>
                   </div>
                 </div>
               </div>
