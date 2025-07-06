@@ -21,79 +21,38 @@
   @apply bg-black text-white;
 }
 
-/* React Quill Styles */
-.rich-text-editor .ql-toolbar {
-  @apply border-neutral-200 rounded-t-lg;
+/* Modern Text Editor Styles */
+.modern-text-editor [contenteditable] {
+  outline: none;
 }
 
-.rich-text-editor .ql-container {
-  @apply border-neutral-200 rounded-b-lg;
-  font-family: inherit;
+.modern-text-editor [contenteditable]:focus {
+  outline: none;
 }
 
-.rich-text-editor .ql-editor {
-  @apply text-neutral-900;
-  font-size: 16px;
+.modern-text-editor .prose {
+  max-width: none;
+}
+
+.modern-text-editor .prose p {
+  margin: 0.75rem 0;
   line-height: 1.6;
-  min-height: 300px;
 }
 
-.rich-text-editor .ql-editor.ql-blank::before {
-  @apply text-neutral-400;
-  font-style: normal;
+.modern-text-editor .prose strong {
+  font-weight: 600;
 }
 
-.rich-text-editor .ql-toolbar .ql-stroke {
-  @apply stroke-neutral-600;
+.modern-text-editor .prose em {
+  font-style: italic;
 }
 
-.rich-text-editor .ql-toolbar .ql-fill {
-  @apply fill-neutral-600;
+.modern-text-editor .prose u {
+  text-decoration: underline;
 }
 
-.rich-text-editor .ql-toolbar button:hover .ql-stroke {
-  @apply stroke-black;
-}
-
-.rich-text-editor .ql-toolbar button:hover .ql-fill {
-  @apply fill-black;
-}
-
-.rich-text-editor .ql-toolbar button.ql-active .ql-stroke {
-  @apply stroke-black;
-}
-
-.rich-text-editor .ql-toolbar button.ql-active .ql-fill {
-  @apply fill-black;
-}
-
-.rich-text-editor .ql-snow .ql-picker {
-  @apply text-neutral-600;
-}
-
-.rich-text-editor .ql-snow .ql-picker-options {
-  @apply bg-white border border-neutral-200 rounded-lg shadow-lg;
-}
-
-.rich-text-editor .ql-snow .ql-picker-item:hover {
-  @apply bg-neutral-50;
-}
-
-.rich-text-editor .ql-snow .ql-picker-item.ql-selected {
-  @apply bg-black text-white;
-}
-
-/* Focus state for the editor */
-.rich-text-editor .ql-container.ql-snow {
-  @apply border-neutral-200;
-}
-
-.rich-text-editor:focus-within .ql-toolbar {
-  @apply border-black;
-}
-
-.rich-text-editor:focus-within .ql-container {
-  @apply border-black ring-2 ring-black ring-opacity-20;
+.modern-text-editor .prose s {
+  text-decoration: line-through;
 }
 
 /* Line clamp utilities */
@@ -116,4 +75,141 @@
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Custom scrollbar for editor */
+.modern-text-editor [contenteditable]::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modern-text-editor [contenteditable]::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.modern-text-editor [contenteditable]::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.modern-text-editor [contenteditable]::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Placeholder styling */
+.modern-text-editor [contenteditable]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+  font-style: italic;
+}
+
+/* Focus states for better UX */
+.modern-text-editor [contenteditable]:focus {
+  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Better link styling in editor */
+.modern-text-editor .prose a {
+  color: #3b82f6;
+  text-decoration: underline;
+  text-decoration-color: rgba(59, 130, 246, 0.3);
+  text-underline-offset: 2px;
+  transition: all 0.2s ease;
+}
+
+.modern-text-editor .prose a:hover {
+  color: #1d4ed8;
+  text-decoration-color: rgba(29, 78, 216, 0.6);
+}
+
+/* Better image styling in editor */
+.modern-text-editor .prose img {
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.modern-text-editor .prose img:hover {
+  transform: scale(1.02);
+}
+
+/* Code block styling */
+.modern-text-editor .prose pre {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  position: relative;
+}
+
+.modern-text-editor .prose pre:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+}
+
+/* Blockquote styling */
+.modern-text-editor .prose blockquote {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 8px 8px 0;
+  position: relative;
+}
+
+.modern-text-editor .prose blockquote:before {
+  content: '"';
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  font-size: 3rem;
+  color: #3b82f6;
+  opacity: 0.3;
+  font-family: serif;
+}
+
+/* List styling */
+.modern-text-editor .prose ul li {
+  position: relative;
+}
+
+.modern-text-editor .prose ul li:before {
+  content: '•';
+  color: #3b82f6;
+  font-weight: bold;
+  position: absolute;
+  left: -1rem;
+}
+
+.modern-text-editor .prose ol li {
+  counter-increment: list-counter;
+}
+
+.modern-text-editor .prose ol {
+  counter-reset: list-counter;
+}
+
+.modern-text-editor .prose ol li:before {
+  content: counter(list-counter) '.';
+  color: #3b82f6;
+  font-weight: bold;
+  position: absolute;
+  left: -1.5rem;
+}
+
+/* Mention styling */
+.modern-text-editor .prose [style*="color: #3b82f6"][style*="background-color: #dbeafe"] {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.modern-text-editor .prose [style*="color: #3b82f6"][style*="background-color: #dbeafe"]:hover {
+  background-color: #bfdbfe !important;
+  transform: translateY(-1px);
 }
