@@ -19,7 +19,7 @@ interface PostForm {
   youtubeUrl: string;
 }
 
-const EditPostPage = () => {
+export default function EditPostPage() {
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const navigate = useNavigate();
@@ -325,6 +325,4 @@ const EditPostPage = () => {
       </div>
     </div>
   );
-};
-
-export default EditPostPage;
+}
