@@ -1,5 +1,5 @@
 import React from 'react';
-import ModernTextEditor from './ModernTextEditor';
+import MediumEditor from './MediumEditor';
 
 interface RichTextEditorProps {
   value: string;
@@ -11,15 +11,14 @@ interface RichTextEditorProps {
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
   value,
   onChange,
-  placeholder = "Start writing your content...",
+  placeholder = "Tell your story...",
   height = 400
 }) => {
   return (
-    <ModernTextEditor
+    <MediumEditor
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      height={height}
     />
   );
 };
