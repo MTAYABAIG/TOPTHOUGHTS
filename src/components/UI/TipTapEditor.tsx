@@ -12,7 +12,7 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { lowlight } from 'lowlight';
+import lowlight from 'lowlight';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bold,
