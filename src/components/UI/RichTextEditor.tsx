@@ -1,5 +1,5 @@
 import React from 'react';
-import MediumEditor from './MediumEditor';
+import TipTapEditor from './TipTapEditor';
 
 interface RichTextEditorProps {
   value: string;
@@ -15,7 +15,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   height = 400
 }) => {
   return (
-    <MediumEditor
+    <TipTapEditor
       value={value}
       onChange={onChange}
       placeholder={placeholder}
