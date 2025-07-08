@@ -532,7 +532,7 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
       </AnimatePresence>
 
       {/* Custom Styles */}
-      <style jsx global>{`
+      <style>{`
         .tiptap-editor .ProseMirror {
           outline: none;
         }
