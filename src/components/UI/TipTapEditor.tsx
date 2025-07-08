@@ -12,7 +12,13 @@ import TableHeader from '@tiptap/extension-table-header';
 import TableCell from '@tiptap/extension-table-cell';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
-import { common as lowlight } from 'lowlight';
+import { createLowlight } from 'lowlight';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import css from 'highlight.js/lib/languages/css';
+import html from 'highlight.js/lib/languages/xml';
+import python from 'highlight.js/lib/languages/python';
+import json from 'highlight.js/lib/languages/json';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bold,
@@ -263,6 +269,15 @@ const TipTapEditor: React.FC<TipTapEditorProps> = ({
   const [addMenuPosition, setAddMenuPosition] = useState({ x: 0, y: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
+
+  // Create and configure lowlight instance
+  const lowlight = createLowlight();
+  lowlight.register('javascript', javascript);
+  lowlight.register('typescript', typescript);
+  lowlight.register('css', css);
+  lowlight.register('html', html);
+  lowlight.register('python', python);
+  lowlight.register('json', json);
 
   const editor = useEditor({
     extensions: [
